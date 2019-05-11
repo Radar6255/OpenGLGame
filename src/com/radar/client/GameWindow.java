@@ -26,11 +26,11 @@ public class GameWindow {
 		//Code to stop the program from running
 		frame.addWindowListener(new WindowAdapter(){  
             public void windowClosing(WindowEvent e) {
-            	System.out.println("Closing window...");
                 frame.dispose();
+                game.stop();
+            	System.out.println("Window closed");
             }
         });
-//		game.setDefaultCloseOperation(game.getDefaultCloseOperation());
 	}
 
 }
