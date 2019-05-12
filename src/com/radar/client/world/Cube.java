@@ -25,6 +25,9 @@ public class Cube {
 	 * Holds the handles for the VBOs of a face
 	 */
 	private int[] faceHandles = new int[6];
+	/**
+	 * Holds the handles for the color values of the faces
+	 */
 	private int[] colorHandles = new int[6];
 	
 	
@@ -38,7 +41,6 @@ public class Cube {
 	 */
 	private int w, h, d;
 	
-	float rquad = 0;
 	/**
 	 * Constructor to set up OpenGL buffers
 	 * @param x X Position of the cube
@@ -56,10 +58,16 @@ public class Cube {
 		initBuffers(gl);
 	}
 	
-	public void render(GL2 gl, Coord<Float> playerPos) {
+	/**
+	 * Draws this cube's faces
+	 * @param gl The GL2 reference used to draw the cube
+	 */
+	public void render(GL2 gl) {
 		
 		gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
 		gl.glEnableClientState(GL2.GL_COLOR_ARRAY);
+		
+//		gl.glTranslated(coords.getX(), coords.getY(), coords.getZ());
 		for (int i = 0; i < 6; i++) {
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, faceHandles[i]);
 			gl.glVertexPointer(3, GL2.GL_FLOAT, 0, 0l);
@@ -71,10 +79,12 @@ public class Cube {
 		}
 		gl.glDisableClientState(GL2.GL_COLOR_ARRAY);
 		gl.glDisableClientState(GL2.GL_VERTEX_ARRAY);
-		
-//		rquad -= 0.01;
 	}
 	
+	/**
+	 * Function to set up the buffers for all the cube faces
+	 * @param gl The GL2 reference to get access to OpenGL buffers
+	 */
 	private void initBuffers(GL2 gl) {
 		LinkedList<FloatBuffer> vertexBuffers = new LinkedList<>();
 		ArrayList<FloatBuffer> colorBuffers = new ArrayList<>();
@@ -84,6 +94,7 @@ public class Cube {
 			colorBuffers.add(Buffers.newDirectFloatBuffer(3 * 4));
 			for (int v = 0; v < 4; v++) {
 				//X, Y, Z of a point
+//				vertexBuffers.get(i).put(new float[] {verts[(i*4) + v][0],verts[(i*4) + v][1],verts[(i*4) + v][2]});
 				vertexBuffers.get(i).put(new float[] {verts[(i*4) + v][0] + coords.getX(),verts[(i*4) + v][1] + coords.getY(),verts[(i*4) + v][2] + coords.getZ()});
 				colorBuffers.get(i).put(new float[] {1.0f*(i/6f), 1.0f, 1.0f});
 			}
@@ -92,6 +103,7 @@ public class Cube {
 			gl.glGenBuffers(1, faceHandles, i);
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, faceHandles[i]);
 			
+			//Has thrown error once
 			gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3, vertexBuffers.get(i), GL2.GL_STATIC_DRAW);
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
 			

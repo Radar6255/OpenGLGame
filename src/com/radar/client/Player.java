@@ -1,11 +1,19 @@
 package com.radar.client;
 
+import java.awt.AWTException;
+import java.awt.MouseInfo;
+import java.awt.Point;
+import java.awt.PointerInfo;
+import java.awt.Robot;
+import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 
 import com.radar.client.world.Coord;
 
-public class Player implements KeyListener{
+public class Player implements KeyListener, MouseListener{
 	
 	
 	/**
@@ -16,11 +24,23 @@ public class Player implements KeyListener{
 	/**
 	 * Rotation of the players view
 	 */
-	float xRot, yRot;
+	float xRot = 0, yRot = 0;
 	
+	/**
+	 * Booleans to keep track of what buttons are currently pressed
+	 */
 	boolean w, a, s, d, space, shift;
 	
+	/**
+	 * The players movement speed amount
+	 */
 	private float movementSpeed = 0.2f;
+	
+	/**
+	 * Center coordinates of the players screen
+	 */
+	int centerX = (int) Toolkit.getDefaultToolkit().getScreenSize().getWidth() / 2;
+	int centerY = (int) Toolkit.getDefaultToolkit().getScreenSize().getHeight() / 2;
 	
 	public Player(float x, float y, float z, float xRot, float yRot) {
 		pos = new Coord<Float>(x,y,z);
@@ -31,22 +51,72 @@ public class Player implements KeyListener{
 		w = false; a = false; s = false; d = false; space = false; shift = false;
 	}
 	
+	/**
+	 * Function to run things that should be ticked for the player
+	 */
 	public void tick() {
-		if (w) {
-			pos.setZ(movementSpeed);
-		}else if (s) {
-			pos.setZ(-movementSpeed);
-		}else pos.setZ(0f);
+		//Getting mouse details
+		PointerInfo mouseLoc = MouseInfo.getPointerInfo();
+		Point tempPoint = mouseLoc.getLocation();
 		
+		float x = (float) tempPoint.getX();
+		float y = (float) tempPoint.getY();
+
+		//Finding the mouse movement and changing rotation
+		xRot = xRot + (x-centerX)/60.0f;
+		yRot = yRot + (y-centerY)/60.0f;
+		
+		try {
+			new Robot().mouseMove(centerX, centerY);
+		} catch (AWTException e) {
+			e.printStackTrace();
+		}
+		
+		//Finding the sine and cosine for the horizontal rotation
+		float sin = (float) Math.sin(Math.toRadians(xRot));
+		float cos = (float) Math.cos(Math.toRadians(xRot));
+		
+		//Foward backward movement
+		if (w) {
+			pos.setX(-movementSpeed*sin + pos.getX());
+			pos.setZ(movementSpeed*cos + pos.getZ());
+		}else if (s) {
+			pos.setX(movementSpeed*sin + pos.getX());
+			pos.setZ(-movementSpeed*cos + pos.getZ());
+		}
+		
+		//Left right movement
 		if (a) {
-			pos.setX(movementSpeed);
+			pos.setX(movementSpeed*cos + pos.getX());
+			pos.setZ(movementSpeed*sin + pos.getZ());
 		}else if (d) {
-			pos.setX(-movementSpeed);
-		}else pos.setX(0f);
+			pos.setX(-movementSpeed*cos + pos.getX());
+			pos.setZ(-movementSpeed*sin + pos.getZ());
+		}
+		
+		//Up down movement
+		if(space) {
+			pos.setY(-movementSpeed + pos.getY());
+		}else if (shift) {
+			pos.setY(movementSpeed + pos.getY());
+		}
+		
 	}
 	
+	/**
+	 * Function to get the position of the player
+	 * @return A Coord object with this player's position in the world
+	 */
 	public Coord<Float> getPos() {
 		return pos;
+	}
+	
+	public float getXRot() {
+		return xRot;
+	}
+	
+	public float getYRot() {
+		return yRot;
 	}
 	
 	@Override
@@ -63,6 +133,12 @@ public class Player implements KeyListener{
 			break;
 		case KeyEvent.VK_D:
 			d = true;
+			break;
+		case KeyEvent.VK_SPACE:
+			space = true;
+			break;
+		case KeyEvent.VK_SHIFT:
+			shift = true;
 			break;
 		}
 	}
@@ -82,11 +158,47 @@ public class Player implements KeyListener{
 		case KeyEvent.VK_D:
 			d = false;
 			break;
+		case KeyEvent.VK_SPACE:
+			space = false;
+			break;
+		case KeyEvent.VK_SHIFT:
+			shift = false;
+			break;
 		}
 	}
 
 	@Override
 	public void keyTyped(KeyEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseClicked(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mousePressed(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseReleased(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseEntered(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseExited(MouseEvent e) {
 		// TODO Auto-generated method stub
 		
 	}

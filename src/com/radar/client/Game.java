@@ -3,7 +3,13 @@ package com.radar.client;
 
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.util.FPSAnimator;
+import com.radar.client.window.GameWindow;
+import com.radar.client.window.WindowUpdates;
 
+/**
+ * @author radar
+ * A basic 3D game to try out the basics of OpenGL
+ */
 public class Game extends GLCanvas{
 	private static final long serialVersionUID = 1L;
 	
@@ -12,6 +18,9 @@ public class Game extends GLCanvas{
 	 */
 	FPSAnimator animator;
 	
+	/**
+	 * Used to set up the games pieces
+	 */
 	public Game() {
 		new GameWindow(1200,800,"OpenGL Tests",this);
 		
@@ -32,6 +41,10 @@ public class Game extends GLCanvas{
 		System.out.println("Stopped animator");
 	}
 	
+	/**
+	 * Creates an instance of the game
+	 * @param args Not used
+	 */
 	public static void main(String[] args) {
 		new Game();
 	}

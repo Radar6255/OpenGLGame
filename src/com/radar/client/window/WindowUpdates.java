@@ -1,13 +1,17 @@
-package com.radar.client;
+package com.radar.client.window;
 
 import java.nio.FloatBuffer;
+import java.util.LinkedList;
 
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.GL2;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.glu.GLU;
+import com.radar.client.Player;
+import com.radar.client.world.Chunk;
 import com.radar.client.world.Cube;
+import com.radar.client.world.WorldGen;
 
 /**
  * @author radar
@@ -24,28 +28,45 @@ public class WindowUpdates implements GLEventListener {
 	 */
 	private int[] backgroundColorHandle = new int[1];
 	
+	/**
+	 * List of all chunks rendering for this player
+	 */
+	private LinkedList<Chunk> chunks;
+	
 	private GLU glu = new GLU();
 	
+	/**
+	 * The player this window is rendering for
+	 */
 	private Player player;
 	
 	public WindowUpdates(Player player) {
 		this.player = player;
+		chunks = new LinkedList<Chunk>();
 	}
 	
 	@Override
 	public void display(GLAutoDrawable drawable) {
 		//Contains any draw calls
 		
-		
 		//Drawing background
 		GL2 gl = drawable.getGL().getGL2();
 	    gl.glClear(GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT );
+	    gl.glLoadIdentity();
 //		renderBackground(gl);
 	    player.tick();
-
+	    
+	    //Angle, x, y, z
+	  	//Angle, verticle, horizontal
+		gl.glRotatef(player.getYRot(), 1f, 0f, 0f);
+		gl.glRotatef(player.getXRot(), 0f, 1f, 0f);
+		
+		//Moving the world around the players coordinates
 		gl.glTranslatef(player.getPos().getX(), player.getPos().getY(), player.getPos().getZ());
-		test.render(gl, player.getPos());
-		test2.render(gl, player.getPos());
+		
+		for (Chunk chunk: chunks) {
+			chunk.render(gl);
+		}
 		
 	}
 
@@ -55,11 +76,13 @@ public class WindowUpdates implements GLEventListener {
 
 	}
 	//TODO Remove test cubes
-	Cube test, test2;
+	Chunk temp = new Chunk(0, 0);
 	@Override
 	public void init(GLAutoDrawable drawable) {
 		// TODO Auto-generated method stub
 		GL2 gl = drawable.getGL().getGL2();
+		new WorldGen(player, this, gl).run();
+		
 		gl.glShadeModel( GL2.GL_SMOOTH );
 		gl.glClearColor( 0f, 0f, 0f, 0f );
 	    gl.glClearDepth( 1.0f );
@@ -68,8 +91,11 @@ public class WindowUpdates implements GLEventListener {
         gl.glDepthFunc(GL2.GL_LEQUAL);
 	    gl.glHint(GL2.GL_PERSPECTIVE_CORRECTION_HINT, GL2.GL_NICEST );
 //		createInitialVBOs(gl);
-		test = new Cube(0,0,0,1,1,1, gl);
-		test2 = new Cube(1,0,0,1,1,1, gl);
+//	    for (int x = 0; x < 128; x++) {
+//	    	for (int y = 0; y < 128; y++) {
+//	    		temp.addCube(new Cube(x,0,y,1,1,1, gl));
+//	    	}
+//	    }chunks.add(temp);
 	}
 
 	@Override
@@ -84,8 +110,8 @@ public class WindowUpdates implements GLEventListener {
 		gl.glViewport( 0, 0, width, height );
 		gl.glMatrixMode( GL2.GL_PROJECTION );
 	    gl.glLoadIdentity();
-			
-	    glu.gluPerspective( 45.0f, h, 1.0, 20.0 );
+	    //                          Start  End
+	    glu.gluPerspective( 45.0f, h, 1.0, 200.0 );
 	    gl.glMatrixMode( GL2.GL_MODELVIEW );
 	    gl.glLoadIdentity();
 	}
@@ -103,10 +129,10 @@ public class WindowUpdates implements GLEventListener {
 		// 3 for X,Y,Z
 		// 4 for 4 verticies
 		backgroundVertex = Buffers.newDirectFloatBuffer(3 * 4);
-		backgroundVertex.put(new float[] {-1,-1,-1f});
-		backgroundVertex.put(new float[] {-1,1,-1f});
-		backgroundVertex.put(new float[] {1,1,-1f});
-		backgroundVertex.put(new float[] {1,-1,-1f});
+		backgroundVertex.put(new float[] {-1,-1,-199f});
+		backgroundVertex.put(new float[] {-1,1,-199f});
+		backgroundVertex.put(new float[] {1,1,-199f});
+		backgroundVertex.put(new float[] {1,-1,-199f});
 		backgroundVertex.flip();
 		
 		//3 for r,g,b colors
@@ -147,5 +173,9 @@ public class WindowUpdates implements GLEventListener {
 		gl.glDisableClientState(GL2.GL_COLOR_ARRAY);
 		gl.glDisableClientState(GL2.GL_VERTEX_ARRAY);
 	}
-
+	
+	public void addChunk(Chunk chunk) {
+		System.out.println("Test");
+		chunks.add(chunk);
+	}
 }
