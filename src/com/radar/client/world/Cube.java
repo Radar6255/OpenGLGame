@@ -21,6 +21,11 @@ public class Cube {
 		{-0.5f, 0.5f, 0.5f}, {-0.5f, -0.5f, 0.5f}, {-0.5f, -0.5f, -0.5f}, {-0.5f, 0.5f, -0.5f},
 		{0.5f, 0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f}, {-0.5f, 0.5f, -0.5f}, {0.5f, 0.5f, -0.5f},
 		{0.5f, -0.5f, 0.5f}, {-0.5f, -0.5f, 0.5f}, {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f}};
+		
+	//TODO Make a color array for the cube to store
+	
+	
+	
 	/**
 	 * Holds the handles for the VBOs of a face
 	 */
@@ -41,6 +46,8 @@ public class Cube {
 	 */
 	private int w, h, d;
 	
+	private boolean first = true;
+	
 	/**
 	 * Constructor to set up OpenGL buffers
 	 * @param x X Position of the cube
@@ -50,12 +57,11 @@ public class Cube {
 	 * @param h Height of the cube
 	 * @param d Depth of the cube
 	 */
-	public Cube(int x, int y, int z, int w, int h, int d, GL2 gl) {
+	public Cube(int x, int y, int z, int w, int h, int d) {
 		coords = new Coord<Integer>(x,y,z);
 		this.w = w;
 		this.h = h;
 		this.d = d;
-		initBuffers(gl);
 	}
 	
 	/**
@@ -64,8 +70,12 @@ public class Cube {
 	 */
 	public void render(GL2 gl) {
 		
-		gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
-		gl.glEnableClientState(GL2.GL_COLOR_ARRAY);
+		if (first) {
+			//Needed to move the buffer initialization to the render call because is needs a new copy of gl
+			initBuffers(gl);
+			first = false;
+		}
+		
 		
 //		gl.glTranslated(coords.getX(), coords.getY(), coords.getZ());
 		for (int i = 0; i < 6; i++) {
@@ -77,8 +87,6 @@ public class Cube {
 			
 			gl.glDrawArrays(GL2.GL_QUADS, 0, 4);
 		}
-		gl.glDisableClientState(GL2.GL_COLOR_ARRAY);
-		gl.glDisableClientState(GL2.GL_VERTEX_ARRAY);
 	}
 	
 	/**
@@ -94,7 +102,6 @@ public class Cube {
 			colorBuffers.add(Buffers.newDirectFloatBuffer(3 * 4));
 			for (int v = 0; v < 4; v++) {
 				//X, Y, Z of a point
-//				vertexBuffers.get(i).put(new float[] {verts[(i*4) + v][0],verts[(i*4) + v][1],verts[(i*4) + v][2]});
 				vertexBuffers.get(i).put(new float[] {verts[(i*4) + v][0] + coords.getX(),verts[(i*4) + v][1] + coords.getY(),verts[(i*4) + v][2] + coords.getZ()});
 				colorBuffers.get(i).put(new float[] {1.0f*(i/6f), 1.0f, 1.0f});
 			}
@@ -103,7 +110,6 @@ public class Cube {
 			gl.glGenBuffers(1, faceHandles, i);
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, faceHandles[i]);
 			
-			//Has thrown error once
 			gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3, vertexBuffers.get(i), GL2.GL_STATIC_DRAW);
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
 			

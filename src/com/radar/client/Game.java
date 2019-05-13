@@ -19,6 +19,11 @@ public class Game extends GLCanvas{
 	FPSAnimator animator;
 	
 	/**
+	 * The window where all updates are handled
+	 */
+	WindowUpdates window;
+	
+	/**
 	 * Used to set up the games pieces
 	 */
 	public Game() {
@@ -28,7 +33,8 @@ public class Game extends GLCanvas{
 		this.addKeyListener(player1);
 		
 		animator = new FPSAnimator(this, 120);
-		this.addGLEventListener(new WindowUpdates(player1));
+		window = new WindowUpdates(player1);
+		this.addGLEventListener(window);
 		animator.start();
 	}
 	
@@ -39,6 +45,7 @@ public class Game extends GLCanvas{
 	public void stop() {
 		animator.stop();
 		System.out.println("Stopped animator");
+		window.stop();
 	}
 	
 	/**

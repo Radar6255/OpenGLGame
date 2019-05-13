@@ -10,7 +10,6 @@ import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.glu.GLU;
 import com.radar.client.Player;
 import com.radar.client.world.Chunk;
-import com.radar.client.world.Cube;
 import com.radar.client.world.WorldGen;
 
 /**
@@ -33,7 +32,11 @@ public class WindowUpdates implements GLEventListener {
 	 */
 	private LinkedList<Chunk> chunks;
 	
+	private LinkedList<Chunk> chunkQueue;
+	
 	private GLU glu = new GLU();
+	
+	WorldGen gen;
 	
 	/**
 	 * The player this window is rendering for
@@ -43,12 +46,19 @@ public class WindowUpdates implements GLEventListener {
 	public WindowUpdates(Player player) {
 		this.player = player;
 		chunks = new LinkedList<Chunk>();
+		chunkQueue = new LinkedList<Chunk>();
 	}
 	
+	/**
+	 * Used to shutdown threads running for the window
+	 */
+	public void stop() {
+		gen.stop();
+	}
+	
+	//Contains any draw calls
 	@Override
 	public void display(GLAutoDrawable drawable) {
-		//Contains any draw calls
-		
 		//Drawing background
 		GL2 gl = drawable.getGL().getGL2();
 	    gl.glClear(GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT );
@@ -63,9 +73,17 @@ public class WindowUpdates implements GLEventListener {
 		
 		//Moving the world around the players coordinates
 		gl.glTranslatef(player.getPos().getX(), player.getPos().getY(), player.getPos().getZ());
-		
+
+		gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
+		gl.glEnableClientState(GL2.GL_COLOR_ARRAY);
 		for (Chunk chunk: chunks) {
 			chunk.render(gl);
+		}
+		gl.glDisableClientState(GL2.GL_COLOR_ARRAY);
+		gl.glDisableClientState(GL2.GL_VERTEX_ARRAY);
+		if (!chunkQueue.isEmpty()) {
+			chunks.addAll(chunkQueue);
+			chunkQueue.clear();
 		}
 		
 	}
@@ -75,13 +93,11 @@ public class WindowUpdates implements GLEventListener {
 		// TODO Auto-generated method stub
 
 	}
-	//TODO Remove test cubes
-	Chunk temp = new Chunk(0, 0);
 	@Override
 	public void init(GLAutoDrawable drawable) {
 		// TODO Auto-generated method stub
 		GL2 gl = drawable.getGL().getGL2();
-		new WorldGen(player, this, gl).run();
+		gen = new WorldGen(player, this);
 		
 		gl.glShadeModel( GL2.GL_SMOOTH );
 		gl.glClearColor( 0f, 0f, 0f, 0f );
@@ -91,11 +107,6 @@ public class WindowUpdates implements GLEventListener {
         gl.glDepthFunc(GL2.GL_LEQUAL);
 	    gl.glHint(GL2.GL_PERSPECTIVE_CORRECTION_HINT, GL2.GL_NICEST );
 //		createInitialVBOs(gl);
-//	    for (int x = 0; x < 128; x++) {
-//	    	for (int y = 0; y < 128; y++) {
-//	    		temp.addCube(new Cube(x,0,y,1,1,1, gl));
-//	    	}
-//	    }chunks.add(temp);
 	}
 
 	@Override
@@ -175,7 +186,6 @@ public class WindowUpdates implements GLEventListener {
 	}
 	
 	public void addChunk(Chunk chunk) {
-		System.out.println("Test");
-		chunks.add(chunk);
+		chunkQueue.add(chunk);
 	}
 }

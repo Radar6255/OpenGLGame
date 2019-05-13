@@ -31,10 +31,12 @@ public class Player implements KeyListener, MouseListener{
 	 */
 	boolean w, a, s, d, space, shift;
 	
+	boolean pause = false;
+	
 	/**
 	 * The players movement speed amount
 	 */
-	private float movementSpeed = 0.2f;
+	private float movementSpeed = PlayerSettings.defaultMovementSpeed;
 	
 	/**
 	 * Center coordinates of the players screen
@@ -62,14 +64,16 @@ public class Player implements KeyListener, MouseListener{
 		float x = (float) tempPoint.getX();
 		float y = (float) tempPoint.getY();
 
-		//Finding the mouse movement and changing rotation
-		xRot = xRot + (x-centerX)/60.0f;
-		yRot = yRot + (y-centerY)/60.0f;
+		if (!pause) {
+			//Finding the mouse movement and changing rotation
+			xRot = xRot + (x-centerX)/PlayerSettings.mouseSensitivity;
+			yRot = yRot + (y-centerY)/PlayerSettings.mouseSensitivity;
 		
-		try {
-			new Robot().mouseMove(centerX, centerY);
-		} catch (AWTException e) {
-			e.printStackTrace();
+			try {
+				new Robot().mouseMove(centerX, centerY);
+			} catch (AWTException e) {
+				e.printStackTrace();
+			}
 		}
 		
 		//Finding the sine and cosine for the horizontal rotation
@@ -111,10 +115,18 @@ public class Player implements KeyListener, MouseListener{
 		return pos;
 	}
 	
+	/**
+	 * Getter for the players current x rotation
+	 * @return The players x rotation in degrees
+	 */
 	public float getXRot() {
 		return xRot;
 	}
 	
+	/**
+	 * Getter for the players current y rotation
+	 * @return The players y rotation in degrees
+	 */
 	public float getYRot() {
 		return yRot;
 	}
@@ -163,6 +175,13 @@ public class Player implements KeyListener, MouseListener{
 			break;
 		case KeyEvent.VK_SHIFT:
 			shift = false;
+			break;
+		case KeyEvent.VK_ESCAPE:
+			if (pause) {
+				pause = false;
+			}else {
+				pause = true;
+			}
 			break;
 		}
 	}

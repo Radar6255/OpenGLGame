@@ -2,7 +2,6 @@ package com.radar.client.world;
 
 import java.util.ArrayList;
 
-import com.jogamp.opengl.GL2;
 import com.radar.client.Player;
 import com.radar.client.window.WindowUpdates;
 
@@ -22,24 +21,58 @@ public class WorldGen implements Runnable {
 	 */
 	ArrayList<ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>> world;
 	
-	public static int renderDist = 2;
+	public static int renderDist = 3;
 	
-	private int xOffset = 0;
-	private int zOffset = 0;
+	/**
+	 * Offsets for the chunks so that we can have "negative" chunk coordinates
+	 */
+	private int xOffset = 0, zOffset = 0;
 	
-	public boolean running;
+	/**
+	 * Keeps the world generation running while the game is running
+	 */
+	private boolean running;
 	
+	/**
+	 * The player to generate chunks around
+	 */
 	Player player;
+	
+	/**
+	 * The window to give the chunks to
+	 */
 	WindowUpdates window;
 	
-	GL2 gl;
-	public WorldGen(Player player, WindowUpdates window, GL2 gl) {
+	/**
+	 * The thread that get started in the constructor and ended in the stop() method
+	 */
+	Thread thread;
+	
+	/**
+	 * Constructor to make the world generation thread and start it
+	 * @param player The player to generate chunks for
+	 * @param window The window to display the chunks on
+	 */
+	public WorldGen(Player player, WindowUpdates window) {
 		this.player = player;
 		this.window = window;
-		this.gl = gl;
 		running = true;
 		world = new ArrayList<ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>>();
-//		new Thread(this).start();
+		thread = new Thread(this);
+		thread.start();
+	}
+	
+	/**
+	 * Shuts down this objects thread
+	 */
+	public void stop() {
+		running = false;
+		try {
+			thread.join();
+		} catch (InterruptedException e) {
+			System.out.println("World generation thread failed to close correctly");
+		}
+		System.out.println("World generation thread stopped");
 	}
 	
 	@Override
@@ -49,10 +82,9 @@ public class WorldGen implements Runnable {
 			float x = pos.getX();
 			float z = pos.getZ();
 			
-			int playerChunkX = (int) (x/16);
-			int playerChunkZ = (int) (z/16);
-			//TODO Once memory leak is fixed
-			running = false;
+			int playerChunkX = (int) (-x/16);
+			int playerChunkZ = (int) (-z/16);
+			
 			for (int currentX = -renderDist; currentX < renderDist; currentX++) {
 				while (currentX + playerChunkX + xOffset < 0) {
 					xOffset++;
@@ -80,25 +112,24 @@ public class WorldGen implements Runnable {
 							xStrip.add(new ArrayList<ArrayList<ArrayList<Integer>>>());
 						}
 					}
-					System.out.println((currentX + playerChunkX + xOffset)+" "+(currentZ + playerChunkZ + zOffset));
 					
 					if (world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).size() == 0) {
-						System.out.println("Creating chunk...");
 						Chunk temp = new Chunk(currentX + playerChunkX, currentZ+playerChunkZ);
+						
 						for (int cubeX = 0; cubeX < 16; cubeX++) {
 							world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).add(new ArrayList<ArrayList<Integer>>());
 							for (int cubeZ = 0; cubeZ < 16; cubeZ++) {
 								world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).add(new ArrayList<Integer>());
 								//Adding a layer to the bottom
 								world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(1);
-								temp.addCube(new Cube(16*(currentX + playerChunkX)+cubeX, 0, 16*(currentZ + playerChunkZ)+cubeZ, 1, 1, 1, gl));
+								temp.addCube(new Cube(16*(currentX + playerChunkX)+cubeX, 0, 16*(currentZ + playerChunkZ)+cubeZ, 1, 1, 1));
 							}
 						}
 						window.addChunk(temp);
 					}
 				}
 			}
-		}System.out.println("World generation ended");
+		}
 	}
 
 }
