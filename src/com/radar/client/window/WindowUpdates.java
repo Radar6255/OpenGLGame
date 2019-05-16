@@ -83,6 +83,7 @@ public class WindowUpdates implements GLEventListener {
 		gl.glDisableClientState(GL2.GL_COLOR_ARRAY);
 		gl.glDisableClientState(GL2.GL_VERTEX_ARRAY);
 		if (!chunkQueue.isEmpty()) {
+			//TODO Fix error when adding
 			chunks.addAll(chunkQueue);
 			chunkQueue.clear();
 		}

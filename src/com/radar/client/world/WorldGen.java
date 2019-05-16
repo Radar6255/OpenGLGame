@@ -23,7 +23,12 @@ public class WorldGen implements Runnable {
 	ArrayList<ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>> world;
 	
 	//TODO Make a setting variable
-	public static int renderDist = 3;
+	public static int renderDist = 4;
+	
+	/**
+	 * Stores how many chunks to generate the terrian of the world out to
+	 */
+	public static int genDist = 6;
 	
 	/**
 	 * Offsets for the chunks so that we can have "negative" chunk coordinates
@@ -52,6 +57,8 @@ public class WorldGen implements Runnable {
 	
 	private HashSet<Coord2D<Integer>> visibleChunks;
 	
+//	private HashSet<Coord2D<Integer>> generatedChunks;
+	
 	/**
 	 * Constructor to make the world generation thread and start it
 	 * @param player The player to generate chunks for
@@ -63,6 +70,7 @@ public class WorldGen implements Runnable {
 		running = true;
 		world = new ArrayList<ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>>();
 		visibleChunks = new HashSet<>();
+//		generatedChunks = new HashSet<>();
 		thread = new Thread(this);
 		thread.start();
 	}
@@ -131,7 +139,7 @@ public class WorldGen implements Runnable {
 			int playerChunkX = (int) (x/16);
 			int playerChunkZ = (int) (z/16);
 			
-			for (int currentX = -renderDist; currentX < renderDist; currentX++) {
+			for (int currentX = -genDist; currentX < genDist; currentX++) {
 				while (currentX + playerChunkX + xOffset < 0) {
 					xOffset++;
 					world.add(0, new ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>());
@@ -146,7 +154,7 @@ public class WorldGen implements Runnable {
 						world.get(world.size()-1).add(new ArrayList<ArrayList<ArrayList<Integer>>>());
 					}
 				}
-				for (int currentZ = -renderDist; currentZ < renderDist; currentZ++) {
+				for (int currentZ = -genDist; currentZ < genDist; currentZ++) {
 					while (currentZ + playerChunkZ + zOffset < 0) {
 						zOffset++;
 						for (ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>> xStrip: world) {
@@ -163,8 +171,6 @@ public class WorldGen implements Runnable {
 					if (!visibleChunks.contains(new Coord2D<Integer>(currentX+playerChunkX, currentZ+playerChunkZ))) {
 						
 						if (world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).size() == 0) {
-							visibleChunks.add(new Coord2D<Integer>(currentX+playerChunkX, currentZ+playerChunkZ));
-							Chunk temp = new Chunk(currentX + playerChunkX, currentZ+playerChunkZ);
 						
 							for (int cubeX = 0; cubeX < 16; cubeX++) {
 								world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).add(new ArrayList<ArrayList<Integer>>());
@@ -175,16 +181,15 @@ public class WorldGen implements Runnable {
 									int cubeZPos = 16*(currentZ + playerChunkZ)+cubeZ;
 								
 									for (int i = 0; i < (int) Math.sqrt(2000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2)); i++) {
-										world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(0);
+										world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(1);
 									}
 									world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(1);
-//									temp.addCube(new Cube(cubeXPos, (int) Math.sqrt(2000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2)), cubeZPos, 1, 1, 1, this));
-									temp.addCube(new Cube(cubeXPos, world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).size()-1, cubeZPos, 1, 1, 1, this));
 								}
 							}
-							window.addChunk(temp);
-						}else {
+						}else if (Math.abs(currentX) < renderDist && Math.abs(currentZ) < renderDist) {
+//							System.out.println("Loading chunk "+currentX+playerChunkX+" "+currentZ+playerChunkZ);
 							window.addChunk(loadChunk(currentX+playerChunkX, currentZ+playerChunkZ));
+//							System.out.println("Finished loading chunk");
 						}
 					}
 				}

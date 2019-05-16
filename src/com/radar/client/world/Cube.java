@@ -162,25 +162,26 @@ public class Cube {
 		
 		
 		ArrayList<ArrayList<ArrayList<Integer>>> currentChunk = gen.getChunk(chunkX, chunkZ);
-		int relX, relZ;
+		ArrayList<ArrayList<ArrayList<Integer>>> adjacentChunk;
 		
+		//Finding this cubes position relative to the corner of the chunk it is in
+		int relX, relZ;
 		if (coords.getX() < 0) {
 			relX = 15 - (Math.abs(coords.getX()+1) % 16);
 		}else {
 			relX = Math.abs(coords.getX()) % 16;
 		}
-		
 		if (coords.getZ() < 0) {
 			relZ = 15 - (Math.abs(coords.getZ()+1) % 16);
 		}else {
 			relZ = Math.abs(coords.getZ()) % 16;
 		}
+		
 		if (currentChunk.get(relX).get(relZ).size() <= coords.getY() || currentChunk.get(relX).get(relZ).get(coords.getY()) != 1) {
 			System.out.print("Look: ");
 			System.out.println(coords.getX()+" "+relX+" "+ chunkX +" "+coords.getZ()+" "+relZ+" "+chunkZ);
 		}
 		
-		//TODO Check for faces on the border of chunks
 		if (relX-1 >= 0) {
 			if (currentChunk.get(relX-1).get(relZ).size() > coords.getY()) {
 				if (currentChunk.get(relX-1).get(relZ).get(coords.getY()) != 0) {
@@ -188,12 +189,29 @@ public class Cube {
 					visibleFaces[3] = false;
 				}
 			}
+		}else {
+			adjacentChunk = gen.getChunk(chunkX-1, chunkZ);
+			if (adjacentChunk.size() != 0) {
+				if (adjacentChunk.get(15).get(relZ).size() > coords.getY()) {
+					if (adjacentChunk.get(15).get(relZ).get(coords.getY()) != 0) {
+						visibleFaces[3] = false;
+					}
+				}
+			}
 		}
 		if (relZ-1 >= 0) {
 			if (currentChunk.get(relX).get(relZ-1).size() > coords.getY()) {
 				if (currentChunk.get(relX).get(relZ-1).get(coords.getY()) != 0) {
-//					System.out.println("Test");
 					visibleFaces[1] = false;
+				}
+			}
+		}else {
+			adjacentChunk = gen.getChunk(chunkX, chunkZ-1);
+			if (adjacentChunk.size() != 0) {
+				if (adjacentChunk.get(relX).get(15).size() > coords.getY()) {
+					if (adjacentChunk.get(relX).get(15).get(coords.getY()) != 0) {
+						visibleFaces[1] = false;
+					}
 				}
 			}
 		}
@@ -203,11 +221,29 @@ public class Cube {
 					visibleFaces[2] = false;
 				}
 			}
+		}else {
+			adjacentChunk = gen.getChunk(chunkX+1, chunkZ);
+			if (adjacentChunk.size() != 0) {
+				if (adjacentChunk.get(0).get(relZ).size() > coords.getY()) {
+					if (adjacentChunk.get(0).get(relZ).get(coords.getY()) != 0) {
+						visibleFaces[2] = false;
+					}
+				}
+			}
 		}
 		if (relZ+1 < 16) {
 			if (currentChunk.get(relX).get(relZ+1).size() > coords.getY()) {
 				if (currentChunk.get(relX).get(relZ+1).get(coords.getY()) != 0) {
 					visibleFaces[0] = false;
+				}
+			}
+		}else {
+			adjacentChunk = gen.getChunk(chunkX, chunkZ+1);
+			if (adjacentChunk.size() != 0) {
+				if (adjacentChunk.get(relX).get(0).size() > coords.getY()) {
+					if (adjacentChunk.get(relX).get(0).get(coords.getY()) != 0) {
+						visibleFaces[0] = false;
+					}
 				}
 			}
 		}
