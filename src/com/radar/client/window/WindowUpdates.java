@@ -72,8 +72,9 @@ public class WindowUpdates implements GLEventListener {
 		gl.glRotatef(player.getXRot(), 0f, 1f, 0f);
 		
 		//Moving the world around the players coordinates
-		gl.glTranslatef(player.getPos().getX(), player.getPos().getY(), player.getPos().getZ());
-
+		gl.glTranslatef(-player.getPos().getX(), -player.getPos().getY(), -player.getPos().getZ());
+		
+		//Drawing all of the visible chunks
 		gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
 		gl.glEnableClientState(GL2.GL_COLOR_ARRAY);
 		for (Chunk chunk: chunks) {
@@ -84,6 +85,14 @@ public class WindowUpdates implements GLEventListener {
 		if (!chunkQueue.isEmpty()) {
 			chunks.addAll(chunkQueue);
 			chunkQueue.clear();
+		}
+		
+		for (int i = 0; i < chunks.size(); i++) {
+			if (chunks.get(i).distance(player.getPos().getX(), player.getPos().getZ()) > VideoSettings.renderDistance) {
+				Chunk removing = chunks.remove(i);
+				gen.removeChunk(removing.getX(), removing.getZ());
+				i--;
+			}
 		}
 		
 	}

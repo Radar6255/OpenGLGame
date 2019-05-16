@@ -82,27 +82,27 @@ public class Player implements KeyListener, MouseListener{
 		
 		//Foward backward movement
 		if (w) {
-			pos.setX(-movementSpeed*sin + pos.getX());
-			pos.setZ(movementSpeed*cos + pos.getZ());
-		}else if (s) {
 			pos.setX(movementSpeed*sin + pos.getX());
 			pos.setZ(-movementSpeed*cos + pos.getZ());
+		}else if (s) {
+			pos.setX(-movementSpeed*sin + pos.getX());
+			pos.setZ(movementSpeed*cos + pos.getZ());
 		}
 		
 		//Left right movement
 		if (a) {
-			pos.setX(movementSpeed*cos + pos.getX());
-			pos.setZ(movementSpeed*sin + pos.getZ());
-		}else if (d) {
 			pos.setX(-movementSpeed*cos + pos.getX());
 			pos.setZ(-movementSpeed*sin + pos.getZ());
+		}else if (d) {
+			pos.setX(movementSpeed*cos + pos.getX());
+			pos.setZ(movementSpeed*sin + pos.getZ());
 		}
 		
 		//Up down movement
 		if(space) {
-			pos.setY(-movementSpeed + pos.getY());
-		}else if (shift) {
 			pos.setY(movementSpeed + pos.getY());
+		}else if (shift) {
+			pos.setY(-movementSpeed + pos.getY());
 		}
 		
 	}

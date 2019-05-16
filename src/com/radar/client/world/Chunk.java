@@ -15,12 +15,16 @@ public class Chunk {
 	 */
 	LinkedList<Cube> cubes;
 	
+	private int x, z;
+	
 	/**
 	 * Creates a chunk at the specified x, z
 	 * @param x The x chunk position of this chunk
 	 * @param z The z chunk position of this chunk
 	 */
 	public Chunk(int x, int z) {
+		this.x = x;
+		this.z = z;
 		cubes = new LinkedList<>();
 	}
 	
@@ -40,5 +44,18 @@ public class Chunk {
 		for (Cube cube: cubes) {
 			cube.render(gl);
 		}
+	}
+	
+	public int getX() {
+		return x;
+	}
+
+	public int getZ() {
+		return z;
+	}
+
+
+	public float distance(float tx, float tz) {
+		return (float) Math.sqrt(Math.pow(x-(tx/16),2) + Math.pow(z-(tz/16),2));
 	}
 }
