@@ -59,6 +59,7 @@ public class Player implements KeyListener, MouseListener{
 	public void tick() {
 		//Getting mouse details
 		PointerInfo mouseLoc = MouseInfo.getPointerInfo();
+		//TODO Sometimes throws errors when alt-tabbing
 		Point tempPoint = mouseLoc.getLocation();
 		
 		float x = (float) tempPoint.getX();

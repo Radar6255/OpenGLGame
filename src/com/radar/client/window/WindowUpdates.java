@@ -59,6 +59,7 @@ public class WindowUpdates implements GLEventListener {
 	//Contains any draw calls
 	@Override
 	public void display(GLAutoDrawable drawable) {
+//		long start = System.currentTimeMillis();
 		//Drawing background
 		GL2 gl = drawable.getGL().getGL2();
 	    gl.glClear(GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT );
@@ -92,10 +93,13 @@ public class WindowUpdates implements GLEventListener {
 			if (chunks.get(i).distance(player.getPos().getX(), player.getPos().getZ()) > VideoSettings.renderDistance) {
 				Chunk removing = chunks.remove(i);
 				gen.removeChunk(removing.getX(), removing.getZ());
+				removing.delete(gl);
 				i--;
 			}
 		}
-		
+//		if (System.currentTimeMillis()-start != 0) {
+//			System.out.println("Render time: "+1000/(System.currentTimeMillis()-start)+"fps");
+//		}
 	}
 
 	@Override

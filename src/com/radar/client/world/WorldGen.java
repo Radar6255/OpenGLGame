@@ -23,12 +23,12 @@ public class WorldGen implements Runnable {
 	ArrayList<ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>> world;
 	
 	//TODO Make a setting variable
-	public static int renderDist = 4;
+	public static int renderDist = 5;
 	
 	/**
 	 * Stores how many chunks to generate the terrian of the world out to
 	 */
-	public static int genDist = 6;
+	public static int genDist = 7;
 	
 	/**
 	 * Offsets for the chunks so that we can have "negative" chunk coordinates
@@ -55,6 +55,10 @@ public class WorldGen implements Runnable {
 	 */
 	private Thread thread;
 	
+	/**
+	 * Used to keep track of which chunks are visible so that when one isn't
+	 * it gets created and sent to the window to render
+	 */
 	private HashSet<Coord2D<Integer>> visibleChunks;
 	
 //	private HashSet<Coord2D<Integer>> generatedChunks;
@@ -98,10 +102,13 @@ public class WorldGen implements Runnable {
 		return world.get(x + xOffset).get(z + zOffset);
 	}
 	
+	/**
+	 * Tells the world gen which chunks it may have to regenerate if loaded again
+	 * @param chunkX The chunks X position that is being removed
+	 * @param chunkZ The chunks Z position that is being removed
+	 */
 	public void removeChunk(int chunkX, int chunkZ) {
-//		System.out.println(visibleChunks.contains(new Coord2D<Integer>(chunkX, chunkZ)));
 		visibleChunks.remove(new Coord2D<Integer>(chunkX, chunkZ));
-//		System.out.println(visibleChunks.contains(new Coord2D<Integer>(chunkX, chunkZ)));
 	}
 	
 	/**
@@ -112,6 +119,7 @@ public class WorldGen implements Runnable {
 	 */
 	public Chunk loadChunk(int chunkX, int chunkZ) {
 		ArrayList<ArrayList<ArrayList<Integer>>> chunk = world.get(chunkX+xOffset).get(chunkZ+zOffset);
+//		ArrayList<ArrayList<ArrayList<boolean>>> placed = 
 		
 		Chunk creating = new Chunk(chunkX, chunkZ);
 		
@@ -122,6 +130,8 @@ public class WorldGen implements Runnable {
 					if (chunk.get(x).get(z).get(y) != 0) {
 						creating.addCube(new Cube(chunkX*16 + x, y, chunkZ*16 + z, 1, 1, 1, this));
 					}
+					
+					
 				}
 			}
 		}
@@ -180,16 +190,14 @@ public class WorldGen implements Runnable {
 									int cubeXPos = 16*(currentX + playerChunkX)+cubeX;
 									int cubeZPos = 16*(currentZ + playerChunkZ)+cubeZ;
 								
-									for (int i = 0; i < (int) Math.sqrt(2000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2)); i++) {
-										world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(1);
+									for (int i = 0; i < (int) Math.sqrt(5000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2)); i++) {
+										world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(0);
 									}
 									world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(1);
 								}
 							}
 						}else if (Math.abs(currentX) < renderDist && Math.abs(currentZ) < renderDist) {
-//							System.out.println("Loading chunk "+currentX+playerChunkX+" "+currentZ+playerChunkZ);
 							window.addChunk(loadChunk(currentX+playerChunkX, currentZ+playerChunkZ));
-//							System.out.println("Finished loading chunk");
 						}
 					}
 				}

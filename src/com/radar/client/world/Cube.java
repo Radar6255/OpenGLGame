@@ -2,7 +2,6 @@ package com.radar.client.world;
 
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
-import java.util.LinkedList;
 
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.GL2;
@@ -46,15 +45,21 @@ public class Cube {
 	 */
 	private boolean[] visibleFaces = new boolean[] {true, true, true, true, true, true};
 	
-	/**
-	 * Holds the handles for the VBOs of a face
-	 */
-	private int[] faceHandles = new int[6];
-	/**
-	 * Holds the handles for the color values of the faces
-	 */
-	private int[] colorHandles = new int[6];
 	
+	/**
+	 * Holds the handle to the vertices in the buffer
+	 */
+	private int[] vertexHandle = new int[1];
+	
+	/**
+	 * Holds the handle to the colors in the buffer
+	 */
+	private int[] colorHandle = new int[1];
+	
+	/**
+	 * Holds the number of faces visible on this cube
+	 */
+	private int numVisibleFaces;
 	
 	/**
 	 * Holds x,y,z coordinates of the cube
@@ -66,12 +71,18 @@ public class Cube {
 	 */
 	private int w, h, d;
 	
+	/**
+	 * Used to set up buffers and do culling on the first render call
+	 */
 	private boolean first = true;
 	
+	/**
+	 * Used to get the chunks when doing face culling
+	 */
 	private WorldGen gen;
 	
 	/**
-	 * Constructor to set up OpenGL buffers
+	 * Constructor to create a cube
 	 * @param x X Position of the cube
 	 * @param y Y Position of the cube
 	 * @param z Z Position of the cube
@@ -98,62 +109,82 @@ public class Cube {
 			initBuffers(gl);
 			first = false;
 		}
+		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
+		gl.glVertexPointer(3, GL2.GL_FLOAT, 0, 0l);
 		
+		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, colorHandle[0]);
+		gl.glColorPointer(3, GL2.GL_FLOAT, 0, 0l);
 		
-//		gl.glTranslated(coords.getX(), coords.getY(), coords.getZ());
-		for (int i = 0; i < 6; i++) {
-			if (visibleFaces[i]) {
-				gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, faceHandles[i]);
-				gl.glVertexPointer(3, GL2.GL_FLOAT, 0, 0l);
-			
-				gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, colorHandles[i]);
-				gl.glColorPointer(3, GL2.GL_FLOAT, 0, 0l);
-			
-				gl.glDrawArrays(GL2.GL_QUADS, 0, 4);
-			}
-		}
+		gl.glDrawArrays(GL2.GL_QUADS, 0, numVisibleFaces * 4);
 	}
 	
+	/**
+	 * Deletes the buffers used for this cube, used to prevent a data leak
+	 * @param gl An updated OpenGL instance used to remove the buffers
+	 */
+	public void removeBuffers(GL2 gl) {
+		gl.glDeleteBuffers(1, vertexHandle, 0);
+		gl.glDeleteBuffers(1, colorHandle, 0);
+	}
 	
 	/**
-	 * Function to set up the buffers for all the cube faces
+	 * Function to set up the buffer for the cube faces
 	 * @param gl The GL2 reference to get access to OpenGL buffers
 	 */
 	private void initBuffers(GL2 gl) {
-		LinkedList<FloatBuffer> vertexBuffers = new LinkedList<>();
-		LinkedList<FloatBuffer> colorBuffers = new LinkedList<>();
+		FloatBuffer vertexBuffer, colorBuffer;
 		
 		adjacentFaceCull();
+		
+		numVisibleFaces = 0;
+		for (int i = 0; i < 6; i++) {
+			if (visibleFaces[i]) {
+				numVisibleFaces++;
+			}
+		}
+		
+		vertexBuffer = Buffers.newDirectFloatBuffer(3 * 4 * numVisibleFaces);
+		colorBuffer = Buffers.newDirectFloatBuffer(3 * 4 * numVisibleFaces);
 		
 		for (int i = 0; i < 6; i++) {
 			//Only adding visible faces to the GPU
 			if (visibleFaces[i]) {
-				vertexBuffers.add(Buffers.newDirectFloatBuffer(3 * 4));
-				colorBuffers.add(Buffers.newDirectFloatBuffer(3 * 4));
 				for (int v = 0; v < 4; v++) {
 					//X, Y, Z of a point
-					
-					vertexBuffers.getLast().put(new float[] {verts[(i*4) + v][0] + coords.getX(),verts[(i*4) + v][1] + coords.getY(),verts[(i*4) + v][2] + coords.getZ()});
-//					colorBuffers.get(i).put(new float[] {1.0f*(i/6f), 1.0f, 1.0f});
-					colorBuffers.getLast().put(faceColors[i]);
+					vertexBuffer.put(new float[] {verts[(i*4) + v][0] + coords.getX(),verts[(i*4) + v][1] + coords.getY(),verts[(i*4) + v][2] + coords.getZ()});
+					colorBuffer.put(faceColors[i]);
 				}
-				vertexBuffers.getLast().flip();
-				colorBuffers.getLast().flip();
-				gl.glGenBuffers(1, faceHandles, i);
-				gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, faceHandles[i]);
-			
-				gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3, vertexBuffers.getLast(), GL2.GL_STATIC_DRAW);
-				gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
-			
-				gl.glGenBuffers(1, colorHandles, i);
-				gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, colorHandles[i]);
-			
-				gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3, colorBuffers.getLast(), GL2.GL_STATIC_DRAW);
-				gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
 			}
 		}
+		vertexBuffer.flip();
+		colorBuffer.flip();
+		
+		gl.glGenBuffers(1, vertexHandle, 0);
+		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
+		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3 * numVisibleFaces, vertexBuffer, GL2.GL_STATIC_DRAW);
+		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
+		
+		gl.glGenBuffers(1, colorHandle, 0);
+		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, colorHandle[0]);
+		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3 * numVisibleFaces, colorBuffer, GL2.GL_STATIC_DRAW);
+		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
 	}
 	
+	/**
+	 * Finds if this cube has at least one visible face
+	 * @return True if this cube is visible, false if not
+	 */
+	public boolean isVisible() {
+		for (boolean visible: visibleFaces) {
+			if (visible) {
+				return true;
+			}
+		}return false;
+	}
+	
+	/**
+	 * Used to get rid of faces between cubes that won't be seen
+	 */
 	private void adjacentFaceCull() {
 		int chunkX, chunkZ;
 		
@@ -177,15 +208,15 @@ public class Cube {
 			relZ = Math.abs(coords.getZ()) % 16;
 		}
 		
-		if (currentChunk.get(relX).get(relZ).size() <= coords.getY() || currentChunk.get(relX).get(relZ).get(coords.getY()) != 1) {
-			System.out.print("Look: ");
-			System.out.println(coords.getX()+" "+relX+" "+ chunkX +" "+coords.getZ()+" "+relZ+" "+chunkZ);
-		}
+		//TODO Remove test when it is no longer needed, keeping just in case
+//		if (currentChunk.get(relX).get(relZ).size() <= coords.getY() || currentChunk.get(relX).get(relZ).get(coords.getY()) != 1) {
+//			System.out.print("Look: ");
+//			System.out.println(coords.getX()+" "+relX+" "+ chunkX +" "+coords.getZ()+" "+relZ+" "+chunkZ);
+//		}
 		
 		if (relX-1 >= 0) {
 			if (currentChunk.get(relX-1).get(relZ).size() > coords.getY()) {
 				if (currentChunk.get(relX-1).get(relZ).get(coords.getY()) != 0) {
-//					System.out.println("Test");
 					visibleFaces[3] = false;
 				}
 			}
