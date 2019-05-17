@@ -61,8 +61,6 @@ public class WorldGen implements Runnable {
 	 */
 	private HashSet<Coord2D<Integer>> visibleChunks;
 	
-//	private HashSet<Coord2D<Integer>> generatedChunks;
-	
 	/**
 	 * Constructor to make the world generation thread and start it
 	 * @param player The player to generate chunks for

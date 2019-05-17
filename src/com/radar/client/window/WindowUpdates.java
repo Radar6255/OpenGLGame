@@ -99,6 +99,7 @@ public class WindowUpdates implements GLEventListener {
 		}
 //		if (System.currentTimeMillis()-start != 0) {
 //			System.out.println("Render time: "+1000/(System.currentTimeMillis()-start)+"fps");
+//			System.out.println("Render time: "+(System.currentTimeMillis()-start)+"ms");
 //		}
 	}
 

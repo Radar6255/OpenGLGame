@@ -1,7 +1,9 @@
 package com.radar.client.world;
 
+import java.nio.FloatBuffer;
 import java.util.LinkedList;
 
+import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.GL2;
 
 /**
@@ -30,6 +32,11 @@ public class Chunk {
 	 */
 	private int x, z;
 	
+	private int[] vertexHandle = new int[1];
+	private int[] colorHandle = new int[1];
+	
+	private int numFaces = 0;
+	
 	/**
 	 * Creates a chunk at the specified x, z
 	 * @param x The x chunk position of this chunk
@@ -56,20 +63,68 @@ public class Chunk {
 	 */
 	public void render(GL2 gl) {
 		//On the first render run it checks which cubes are actually visible
-		//It then stores the visible cubes and only renders those
+		//It then stores the visible cubes and gets the number of faces that are visible
+		//This is to create the right size buffer
 		if (first) {
 			for (Cube cube: cubes) {
-				cube.render(gl);
 				if (cube.isVisible()) {
 					visibleCubes.add(cube);
+					numFaces += cube.getNumVisibleFaces();
 				}
 			}
+			initBuffers(gl);
+			
 			first = false;
 		}else {
-			for (Cube cube: visibleCubes) {
-				cube.render(gl);
+			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
+			gl.glVertexPointer(3, GL2.GL_FLOAT, 0, 0l);
+			
+			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, colorHandle[0]);
+			gl.glColorPointer(3, GL2.GL_FLOAT, 0, 0l);
+			
+			gl.glDrawArrays(GL2.GL_QUADS, 0, numFaces * 4);
+		}
+	}
+	
+	/**
+	 * Creates the vertex and color buffers for this chunk
+	 * @param gl Used to create the buffers for this chunk
+	 */
+	private void initBuffers(GL2 gl) {
+		float[][] faceVerts = new float[numFaces * 4][3];
+		float[][] colorVerts = new float[numFaces * 4][3];
+		int pos = 0;
+		
+		for (Cube cube: visibleCubes) {
+			float[][] tempFaceVerts = cube.getFaceVerts();
+			float[][] tempColorVerts = cube.getFaceColors();
+			
+			for (int i = 0; i < tempFaceVerts.length; i++) {
+				faceVerts[pos] = tempFaceVerts[i];
+				colorVerts[pos] = tempColorVerts[i];
+				pos++;
 			}
 		}
+		
+		FloatBuffer vertexBuffer = Buffers.newDirectFloatBuffer(3 * 4 * numFaces);
+		FloatBuffer colorBuffer = Buffers.newDirectFloatBuffer(3 * 4 * numFaces);
+		
+		for (int i = 0; i < faceVerts.length; i++) {
+			vertexBuffer.put(faceVerts[i]);
+			colorBuffer.put(colorVerts[i]);
+		}
+		vertexBuffer.flip();
+		colorBuffer.flip();
+		
+		gl.glGenBuffers(1, vertexHandle, 0);
+		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
+		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3 * numFaces, vertexBuffer, GL2.GL_STATIC_DRAW);
+		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
+		
+		gl.glGenBuffers(1, colorHandle, 0);
+		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, colorHandle[0]);
+		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3 * numFaces, colorBuffer, GL2.GL_STATIC_DRAW);
+		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
 	}
 	
 	/**
@@ -91,9 +146,8 @@ public class Chunk {
 	 * @param gl A new instance of openGL used to delete buffers
 	 */
 	public void delete(GL2 gl) {
-		for (Cube cube: visibleCubes) {
-			cube.removeBuffers(gl);
-		}
+		gl.glDeleteBuffers(1, vertexHandle, 0);
+		gl.glDeleteBuffers(1, colorHandle, 0);
 	}
 
 

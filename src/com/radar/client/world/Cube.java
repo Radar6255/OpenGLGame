@@ -1,10 +1,6 @@
 package com.radar.client.world;
 
-import java.nio.FloatBuffer;
 import java.util.ArrayList;
-
-import com.jogamp.common.nio.Buffers;
-import com.jogamp.opengl.GL2;
 
 /**
  * @author radar
@@ -45,17 +41,6 @@ public class Cube {
 	 */
 	private boolean[] visibleFaces = new boolean[] {true, true, true, true, true, true};
 	
-	
-	/**
-	 * Holds the handle to the vertices in the buffer
-	 */
-	private int[] vertexHandle = new int[1];
-	
-	/**
-	 * Holds the handle to the colors in the buffer
-	 */
-	private int[] colorHandle = new int[1];
-	
 	/**
 	 * Holds the number of faces visible on this cube
 	 */
@@ -70,11 +55,6 @@ public class Cube {
 	 * Holds width, height, and depth of the cube repsepecively
 	 */
 	private int w, h, d;
-	
-	/**
-	 * Used to set up buffers and do culling on the first render call
-	 */
-	private boolean first = true;
 	
 	/**
 	 * Used to get the chunks when doing face culling
@@ -96,43 +76,6 @@ public class Cube {
 		this.h = h;
 		this.d = d;
 		this.gen = gen;
-	}
-	
-	/**
-	 * Draws this cube's faces
-	 * @param gl The GL2 reference used to draw the cube
-	 */
-	public void render(GL2 gl) {
-		
-		if (first) {
-			//Needed to move the buffer initialization to the render call because is needs a new copy of gl
-			initBuffers(gl);
-			first = false;
-		}
-		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
-		gl.glVertexPointer(3, GL2.GL_FLOAT, 0, 0l);
-		
-		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, colorHandle[0]);
-		gl.glColorPointer(3, GL2.GL_FLOAT, 0, 0l);
-		
-		gl.glDrawArrays(GL2.GL_QUADS, 0, numVisibleFaces * 4);
-	}
-	
-	/**
-	 * Deletes the buffers used for this cube, used to prevent a data leak
-	 * @param gl An updated OpenGL instance used to remove the buffers
-	 */
-	public void removeBuffers(GL2 gl) {
-		gl.glDeleteBuffers(1, vertexHandle, 0);
-		gl.glDeleteBuffers(1, colorHandle, 0);
-	}
-	
-	/**
-	 * Function to set up the buffer for the cube faces
-	 * @param gl The GL2 reference to get access to OpenGL buffers
-	 */
-	private void initBuffers(GL2 gl) {
-		FloatBuffer vertexBuffer, colorBuffer;
 		
 		adjacentFaceCull();
 		
@@ -142,32 +85,53 @@ public class Cube {
 				numVisibleFaces++;
 			}
 		}
+	}
+	
+	/**
+	 * Function to get the number of visible faces of this cube
+	 * @return The number of visible faces on this cube
+	 */
+	public int getNumVisibleFaces() {
+		return numVisibleFaces;
+	}
+	
+	/**
+	 * Gets all the verticies of the visible faces on this cube
+	 * @return An array containing all the points for all visible faces on this cube
+	 */
+	public float[][] getFaceVerts(){
+		float[][] faceVerts = new float[numVisibleFaces * 4][3];
 		
-		vertexBuffer = Buffers.newDirectFloatBuffer(3 * 4 * numVisibleFaces);
-		colorBuffer = Buffers.newDirectFloatBuffer(3 * 4 * numVisibleFaces);
-		
+		int visibleFace = 0;
 		for (int i = 0; i < 6; i++) {
-			//Only adding visible faces to the GPU
 			if (visibleFaces[i]) {
 				for (int v = 0; v < 4; v++) {
 					//X, Y, Z of a point
-					vertexBuffer.put(new float[] {verts[(i*4) + v][0] + coords.getX(),verts[(i*4) + v][1] + coords.getY(),verts[(i*4) + v][2] + coords.getZ()});
-					colorBuffer.put(faceColors[i]);
-				}
+					faceVerts[(visibleFace*4)+v] = new float[] {verts[(i*4) + v][0] + coords.getX(),verts[(i*4) + v][1] + coords.getY(),verts[(i*4) + v][2] + coords.getZ()};
+				}visibleFace++;
 			}
 		}
-		vertexBuffer.flip();
-		colorBuffer.flip();
 		
-		gl.glGenBuffers(1, vertexHandle, 0);
-		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
-		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3 * numVisibleFaces, vertexBuffer, GL2.GL_STATIC_DRAW);
-		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
+		return faceVerts;
+	}
+	/**
+	 * Gets all the colors of the visible faces on this cube
+	 * @return An array containing all the colors for all visible faces on this cube
+	 */
+	public float[][] getFaceColors(){
+		float[][] faceColorVerts = new float[numVisibleFaces * 4][3];
 		
-		gl.glGenBuffers(1, colorHandle, 0);
-		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, colorHandle[0]);
-		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3 * numVisibleFaces, colorBuffer, GL2.GL_STATIC_DRAW);
-		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
+		int visibleFace = 0;
+		for (int i = 0; i < 6; i++) {
+			if (visibleFaces[i]) {
+				for (int v = 0; v < 4; v++) {
+					//Color of the face
+					faceColorVerts[(visibleFace*4)+v] = faceColors[i];
+				}visibleFace++;
+			}
+		}
+		
+		return faceColorVerts;
 	}
 	
 	/**
