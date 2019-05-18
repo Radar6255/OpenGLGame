@@ -23,12 +23,12 @@ public class WorldGen implements Runnable {
 	ArrayList<ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>> world;
 	
 	//TODO Make a setting variable
-	public static int renderDist = 5;
+	public static int renderDist = 14;
 	
 	/**
 	 * Stores how many chunks to generate the terrian of the world out to
 	 */
-	public static int genDist = 7;
+	public static int genDist = 20;
 	
 	/**
 	 * Offsets for the chunks so that we can have "negative" chunk coordinates
@@ -189,7 +189,7 @@ public class WorldGen implements Runnable {
 									int cubeZPos = 16*(currentZ + playerChunkZ)+cubeZ;
 								
 									for (int i = 0; i < (int) Math.sqrt(5000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2)); i++) {
-										world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(0);
+										world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(1);
 									}
 									world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(1);
 								}

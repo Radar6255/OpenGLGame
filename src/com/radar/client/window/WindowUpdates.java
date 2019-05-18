@@ -10,6 +10,7 @@ import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.glu.GLU;
 import com.radar.client.Player;
 import com.radar.client.world.Chunk;
+import com.radar.client.world.TextureMap;
 import com.radar.client.world.WorldGen;
 
 /**
@@ -38,29 +39,28 @@ public class WindowUpdates implements GLEventListener {
 	
 	WorldGen gen;
 	
+	private volatile boolean adding = false;
+	private volatile boolean clearing = false;
+	
 	/**
 	 * The player this window is rendering for
 	 */
 	private Player player;
 	
-	public WindowUpdates(Player player) {
+	private GameWindow window;
+	
+	public WindowUpdates(Player player, GameWindow window) {
 		this.player = player;
+		this.window = window;
 		chunks = new LinkedList<Chunk>();
 		chunkQueue = new LinkedList<Chunk>();
-	}
-	
-	/**
-	 * Used to shutdown threads running for the window
-	 */
-	public void stop() {
-		gen.stop();
 	}
 	
 	//Contains any draw calls
 	@Override
 	public void display(GLAutoDrawable drawable) {
-//		long start = System.currentTimeMillis();
 		//Drawing background
+		long start = System.currentTimeMillis();
 		GL2 gl = drawable.getGL().getGL2();
 	    gl.glClear(GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT );
 	    gl.glLoadIdentity();
@@ -76,17 +76,28 @@ public class WindowUpdates implements GLEventListener {
 		gl.glTranslatef(-player.getPos().getX(), -player.getPos().getY(), -player.getPos().getZ());
 		
 		//Drawing all of the visible chunks
+		gl.glEnable(GL2.GL_TEXTURE_2D);
 		gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
-		gl.glEnableClientState(GL2.GL_COLOR_ARRAY);
+//		gl.glEnableClientState(GL2.GL_COLOR_ARRAY);
+		gl.glEnableClientState(GL2.GL_TEXTURE_COORD_ARRAY);
+		
+//		gl.glTexParameteri(GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_MAG_FILTER, GL2.GL_LINEAR);
+//		gl.glTexParameteri(GL2.GL_TEXTURE_2D, GL2.GL_TEXTURE_MIN_FILTER, GL2.GL_LINEAR);
+		
 		for (Chunk chunk: chunks) {
 			chunk.render(gl);
 		}
-		gl.glDisableClientState(GL2.GL_COLOR_ARRAY);
+//		gl.glDisableClientState(GL2.GL_COLOR_ARRAY);
+		gl.glFlush();
+		
+		gl.glDisableClientState(GL2.GL_TEXTURE_COORD_ARRAY);
 		gl.glDisableClientState(GL2.GL_VERTEX_ARRAY);
-		if (!chunkQueue.isEmpty()) {
-			//TODO Fix error when adding
+		gl.glDisable(GL2.GL_TEXTURE_2D);
+		if (!adding && !chunkQueue.isEmpty()) {
+			clearing = true;
 			chunks.addAll(chunkQueue);
 			chunkQueue.clear();
+			clearing = false;
 		}
 		
 		for (int i = 0; i < chunks.size(); i++) {
@@ -97,21 +108,29 @@ public class WindowUpdates implements GLEventListener {
 				i--;
 			}
 		}
-//		if (System.currentTimeMillis()-start != 0) {
+		if (System.currentTimeMillis()-start != 0) {
+			window.changeTitle("Render time: "+(System.currentTimeMillis()-start)+"ms");
 //			System.out.println("Render time: "+1000/(System.currentTimeMillis()-start)+"fps");
 //			System.out.println("Render time: "+(System.currentTimeMillis()-start)+"ms");
-//		}
+		}
 	}
 
 	@Override
 	public void dispose(GLAutoDrawable drawable) {
-		// TODO Auto-generated method stub
-
+		gen.stop();
+		GL2 gl = drawable.getGL().getGL2();
+		
+		for (Chunk chunk: chunks) {
+			chunk.delete(gl);
+		}
+		System.out.println("Deleted remaining chunks");
 	}
 	@Override
 	public void init(GLAutoDrawable drawable) {
 		// TODO Auto-generated method stub
 		GL2 gl = drawable.getGL().getGL2();
+		new TextureMap(gl);
+		
 		gen = new WorldGen(player, this);
 		
 		gl.glShadeModel( GL2.GL_SMOOTH );
@@ -120,7 +139,7 @@ public class WindowUpdates implements GLEventListener {
 	    
 		gl.glEnable(GL2.GL_DEPTH_TEST);
         gl.glDepthFunc(GL2.GL_LEQUAL);
-	    gl.glHint(GL2.GL_PERSPECTIVE_CORRECTION_HINT, GL2.GL_NICEST );
+//	    gl.glHint(GL2.GL_PERSPECTIVE_CORRECTION_HINT, GL2.GL_NICEST );
 //		createInitialVBOs(gl);
 	}
 
@@ -137,12 +156,12 @@ public class WindowUpdates implements GLEventListener {
 		gl.glMatrixMode( GL2.GL_PROJECTION );
 	    gl.glLoadIdentity();
 	    //                          Start  End
-	    glu.gluPerspective( 45.0f, h, 1.0, 200.0 );
+	    glu.gluPerspective( 45.0f, h, 1.0, 600.0 );
 	    gl.glMatrixMode( GL2.GL_MODELVIEW );
 	    gl.glLoadIdentity();
 	}
 	
-	public void createInitialVBOs(GL2 gl) {
+	private void createInitialVBOs(GL2 gl) {
 		System.out.println("Creating VBOs");
 		/**
 		 * Holds the backgrounds vertex buffer data
@@ -201,6 +220,11 @@ public class WindowUpdates implements GLEventListener {
 	}
 	
 	public void addChunk(Chunk chunk) {
-		chunkQueue.add(chunk);
+		while (clearing) {}
+		if (!clearing) {
+			adding = true;
+			chunkQueue.add(chunk);
+			adding = false;
+		}
 	}
 }

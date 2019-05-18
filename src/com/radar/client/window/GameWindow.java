@@ -15,8 +15,9 @@ public class GameWindow {
 	 * @param title Title of the window
 	 * @param game The instance of this game
 	 */
+	Frame frame;
 	public GameWindow(int width, int height, String title, Game game) {
-		Frame frame = new Frame(title);
+		frame = new Frame(title);
 		Dimension size = new Dimension(width, height);
 		game.setPreferredSize(size);
 //		frame.setMaximumSize(size);
@@ -33,6 +34,10 @@ public class GameWindow {
             	System.out.println("Window closed");
             }
         });
+	}
+	
+	public void changeTitle(String title) {
+		frame.setTitle(title);
 	}
 
 }

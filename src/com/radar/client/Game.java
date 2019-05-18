@@ -5,6 +5,7 @@ import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.util.FPSAnimator;
 import com.radar.client.window.GameWindow;
 import com.radar.client.window.WindowUpdates;
+import com.radar.client.world.TextureMap;
 
 /**
  * @author radar
@@ -27,13 +28,14 @@ public class Game extends GLCanvas{
 	 * Used to set up the games pieces
 	 */
 	public Game() {
-		new GameWindow(1200,800,"OpenGL Tests",this);
+		GameWindow gameWindow = new GameWindow(1200,800,"OpenGL Tests",this);
 		
 		Player player1 = new Player(0, 0, 0, 0, 0);
 		this.addKeyListener(player1);
 		
 		animator = new FPSAnimator(this, 120);
-		window = new WindowUpdates(player1);
+		window = new WindowUpdates(player1, gameWindow);
+		
 		this.addGLEventListener(window);
 		animator.start();
 	}
@@ -45,7 +47,6 @@ public class Game extends GLCanvas{
 	public void stop() {
 		animator.stop();
 		System.out.println("Stopped animator");
-		window.stop();
 	}
 	
 	/**

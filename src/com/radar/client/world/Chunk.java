@@ -33,7 +33,6 @@ public class Chunk {
 	private int x, z;
 	
 	private int[] vertexHandle = new int[1];
-	private int[] colorHandle = new int[1];
 	
 	private int numFaces = 0;
 	
@@ -76,11 +75,12 @@ public class Chunk {
 			
 			first = false;
 		}else {
+//			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, colorHandle[0]);
+//			gl.glColorPointer(3, GL2.GL_FLOAT, 0, 0l);
+
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
-			gl.glVertexPointer(3, GL2.GL_FLOAT, 0, 0l);
-			
-			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, colorHandle[0]);
-			gl.glColorPointer(3, GL2.GL_FLOAT, 0, 0l);
+			gl.glTexCoordPointer(2, GL2.GL_FLOAT, 5*Buffers.SIZEOF_FLOAT, 3*Buffers.SIZEOF_FLOAT);
+			gl.glVertexPointer(3, GL2.GL_FLOAT, 5*Buffers.SIZEOF_FLOAT, 0l);
 			
 			gl.glDrawArrays(GL2.GL_QUADS, 0, numFaces * 4);
 		}
@@ -92,38 +92,27 @@ public class Chunk {
 	 */
 	private void initBuffers(GL2 gl) {
 		float[][] faceVerts = new float[numFaces * 4][3];
-		float[][] colorVerts = new float[numFaces * 4][3];
 		int pos = 0;
 		
 		for (Cube cube: visibleCubes) {
 			float[][] tempFaceVerts = cube.getFaceVerts();
-			float[][] tempColorVerts = cube.getFaceColors();
 			
 			for (int i = 0; i < tempFaceVerts.length; i++) {
 				faceVerts[pos] = tempFaceVerts[i];
-				colorVerts[pos] = tempColorVerts[i];
 				pos++;
 			}
 		}
 		
-		FloatBuffer vertexBuffer = Buffers.newDirectFloatBuffer(3 * 4 * numFaces);
-		FloatBuffer colorBuffer = Buffers.newDirectFloatBuffer(3 * 4 * numFaces);
+		FloatBuffer vertexBuffer = Buffers.newDirectFloatBuffer(5 * 4 * numFaces);
 		
 		for (int i = 0; i < faceVerts.length; i++) {
 			vertexBuffer.put(faceVerts[i]);
-			colorBuffer.put(colorVerts[i]);
 		}
 		vertexBuffer.flip();
-		colorBuffer.flip();
 		
 		gl.glGenBuffers(1, vertexHandle, 0);
 		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
-		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3 * numFaces, vertexBuffer, GL2.GL_STATIC_DRAW);
-		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
-		
-		gl.glGenBuffers(1, colorHandle, 0);
-		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, colorHandle[0]);
-		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3 * numFaces, colorBuffer, GL2.GL_STATIC_DRAW);
+		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 5 * numFaces, vertexBuffer, GL2.GL_STATIC_DRAW);
 		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
 	}
 	
@@ -147,7 +136,6 @@ public class Chunk {
 	 */
 	public void delete(GL2 gl) {
 		gl.glDeleteBuffers(1, vertexHandle, 0);
-		gl.glDeleteBuffers(1, colorHandle, 0);
 	}
 
 
