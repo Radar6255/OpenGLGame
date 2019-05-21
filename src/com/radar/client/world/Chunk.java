@@ -32,8 +32,14 @@ public class Chunk {
 	 */
 	private int x, z;
 	
+	/**
+	 * Holds the handle to the verticies for all the cubes in this chunk
+	 */
 	private int[] vertexHandle = new int[1];
 	
+	/**
+	 * Holds the number of faces visible in this chunk
+	 */
 	private int numFaces = 0;
 	
 	/**
@@ -71,13 +77,15 @@ public class Chunk {
 					numFaces += cube.getNumVisibleFaces();
 				}
 			}
+
+			//TODO Possibly optimize further
+//			long start = System.currentTimeMillis();
 			initBuffers(gl);
-			
+//			if (System.currentTimeMillis()-start > 3) {
+//				System.out.println((System.currentTimeMillis()-start) + " "+numFaces);
+//			}
 			first = false;
 		}else {
-//			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, colorHandle[0]);
-//			gl.glColorPointer(3, GL2.GL_FLOAT, 0, 0l);
-
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
 			gl.glTexCoordPointer(2, GL2.GL_FLOAT, 5*Buffers.SIZEOF_FLOAT, 3*Buffers.SIZEOF_FLOAT);
 			gl.glVertexPointer(3, GL2.GL_FLOAT, 5*Buffers.SIZEOF_FLOAT, 0l);
@@ -91,23 +99,25 @@ public class Chunk {
 	 * @param gl Used to create the buffers for this chunk
 	 */
 	private void initBuffers(GL2 gl) {
-		float[][] faceVerts = new float[numFaces * 4][3];
+		float[] faceVerts = new float[numFaces * 4 * 5];
 		int pos = 0;
 		
 		for (Cube cube: visibleCubes) {
 			float[][] tempFaceVerts = cube.getFaceVerts();
 			
 			for (int i = 0; i < tempFaceVerts.length; i++) {
-				faceVerts[pos] = tempFaceVerts[i];
+				faceVerts[pos*5] = tempFaceVerts[i][0];
+				faceVerts[(pos*5)+1] = tempFaceVerts[i][1];
+				faceVerts[(pos*5)+2] = tempFaceVerts[i][2];
+				faceVerts[(pos*5)+3] = tempFaceVerts[i][3];
+				faceVerts[(pos*5)+4] = tempFaceVerts[i][4];
 				pos++;
 			}
 		}
 		
 		FloatBuffer vertexBuffer = Buffers.newDirectFloatBuffer(5 * 4 * numFaces);
 		
-		for (int i = 0; i < faceVerts.length; i++) {
-			vertexBuffer.put(faceVerts[i]);
-		}
+		vertexBuffer.put(faceVerts);
 		vertexBuffer.flip();
 		
 		gl.glGenBuffers(1, vertexHandle, 0);
@@ -139,7 +149,33 @@ public class Chunk {
 	}
 
 
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + x;
+		result = prime * result + z;
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Chunk other = (Chunk) obj;
+		if (x != other.x)
+			return false;
+		if (z != other.z)
+			return false;
+		return true;
+	}
+
 	/**
+	 * Gets the distance from this chunk to the point specified
 	 * @param tx The x position to get the distance to
 	 * @param tz The z position to get the distance to
 	 * @return The distance of the corner of this chunk to the point specified

@@ -18,24 +18,10 @@ public class Cube {
 		{0.5f, 0.5f, 0.5f, 0, 0}, {-0.5f, 0.5f, 0.5f, 0, 1}, {-0.5f, 0.5f, -0.5f, 1, 1}, {0.5f, 0.5f, -0.5f, 1, 0},
 		{0.5f, -0.5f, 0.5f, 0, 0}, {-0.5f, -0.5f, 0.5f, 0, 1}, {-0.5f, -0.5f, -0.5f, 1, 1}, {0.5f, -0.5f, -0.5f, 1, 0}
 	};
-	/**
-	 * Colors stored for each face
-	 */
-	private float[][] faceColors = new float[][] {
-		//0 Green face
-		{0f,1f,0f},
-		//1 Magenta face
-		{1f,0f,1f},
-		//2 Red face
-		{1f,0f,0f},
-		//3 Blue face
-		{0f,0f,1f},
-		//4 Light blue, top face
-		{0f,1f,1f},
-		//5 Yellow, bottom face
-		{1f,1f,0f}
-	};
 	
+	/**
+	 * Indicies of textures for each face
+	 */
 	private int[] faceTextures = new int[] {1, 1, 1, 1, 3, 2};
 	
 	/**
@@ -72,11 +58,12 @@ public class Cube {
 	 * @param h Height of the cube
 	 * @param d Depth of the cube
 	 */
-	public Cube(int x, int y, int z, int w, int h, int d, WorldGen gen) {
+	public Cube(int x, int y, int z, int w, int h, int d, int[] faceTextures, WorldGen gen) {
 		coords = new Coord<Integer>(x,y,z);
 		this.w = w;
 		this.h = h;
 		this.d = d;
+		this.faceTextures = faceTextures;
 		this.gen = gen;
 		
 		adjacentFaceCull();
@@ -109,32 +96,13 @@ public class Cube {
 			if (visibleFaces[i]) {
 				float[] temp = TextureMap.getTexCoords(faceTextures[i]);
 				for (int v = 0; v < 4; v++) {
-					//X, Y, Z of a point
-					faceVerts[(visibleFace*4)+v] = new float[] {verts[(i*4) + v][0] + coords.getX(),verts[(i*4) + v][1] + coords.getY(),verts[(i*4) + v][2] + coords.getZ(), (verts[(i*4)+v][3]*temp[2]) + temp[0], (verts[(i*4)+v][4]*temp[2]) + temp[1]};
+					faceVerts[(visibleFace*4)+v] = new float[] {verts[(i*4) + v][0] + coords.getX(),verts[(i*4) + v][1] + coords.getY(),verts[(i*4) + v][2] + coords.getZ(), //X, Y, Z position of face
+							(verts[(i*4)+v][3]*temp[2]) + temp[0], (verts[(i*4)+v][4]*temp[2]) + temp[1]}; //X, Y position of texture
+//							verts[(i*4)+v][3], verts[(i*4)+v][4]};
 				}visibleFace++;
 			}
 		}
-		
 		return faceVerts;
-	}
-	/**
-	 * Gets all the colors of the visible faces on this cube
-	 * @return An array containing all the colors for all visible faces on this cube
-	 */
-	public float[][] getFaceColors(){
-		float[][] faceColorVerts = new float[numVisibleFaces * 4][3];
-		
-		int visibleFace = 0;
-		for (int i = 0; i < 6; i++) {
-			if (visibleFaces[i]) {
-				for (int v = 0; v < 4; v++) {
-					//Color of the face
-					faceColorVerts[(visibleFace*4)+v] = faceColors[i];
-				}visibleFace++;
-			}
-		}
-		
-		return faceColorVerts;
 	}
 	
 	/**
@@ -174,12 +142,6 @@ public class Cube {
 		}else {
 			relZ = Math.abs(coords.getZ()) % 16;
 		}
-		
-		//TODO Remove test when it is no longer needed, keeping just in case
-//		if (currentChunk.get(relX).get(relZ).size() <= coords.getY() || currentChunk.get(relX).get(relZ).get(coords.getY()) != 1) {
-//			System.out.print("Look: ");
-//			System.out.println(coords.getX()+" "+relX+" "+ chunkX +" "+coords.getZ()+" "+relZ+" "+chunkZ);
-//		}
 		
 		if (relX-1 >= 0) {
 			if (currentChunk.get(relX-1).get(relZ).size() > coords.getY()) {
