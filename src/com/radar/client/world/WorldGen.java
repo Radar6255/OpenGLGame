@@ -24,12 +24,12 @@ public class WorldGen implements Runnable {
 	ArrayList<ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>> world;
 	
 	//TODO Make a setting variable
-	public static int renderDist = 14;
+	public static int renderDist = 9;
 	
 	/**
 	 * Stores how many chunks to generate the terrian of the world out to
 	 */
-	public static int genDist = 20;
+	public static int genDist = 14;
 	
 	/**
 	 * Offsets for the chunks so that we can have "negative" chunk coordinates
@@ -66,6 +66,7 @@ public class WorldGen implements Runnable {
 	 * Indicies of textures for each face
 	 */
 	private int[][] faceTextures = new int[][] {{1, 1, 1, 1, 3, 2}, {4, 4, 4, 4, 4, 4}};
+//	private int[][] faceTextures = new int[][] {{5, 6, 7, 8, 9, 10}, {4, 4, 4, 4, 4, 4}};
 	
 
 	private float[][][] gradient;
@@ -126,11 +127,10 @@ public class WorldGen implements Runnable {
 	 * @return A new chunk with the cube objects in it to render
 	 */
 	public Chunk loadChunk(int chunkX, int chunkZ) {
+		visibleChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
 		ArrayList<ArrayList<ArrayList<Integer>>> chunk = world.get(chunkX+xOffset).get(chunkZ+zOffset);
-//		ArrayList<ArrayList<ArrayList<boolean>>> placed = 
-		
+
 		Chunk creating = new Chunk(chunkX, chunkZ);
-		
 		for (int x = 0; x < 16; x++) {
 			for (int z = 0; z < 16; z++) {
 				for (int y = 0; y < chunk.get(x).get(z).size(); y++) {
@@ -140,7 +140,7 @@ public class WorldGen implements Runnable {
 				}
 			}
 		}
-		visibleChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
+		creating.load();
 		return creating;
 	}
 	

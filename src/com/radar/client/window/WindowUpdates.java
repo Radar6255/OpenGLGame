@@ -21,7 +21,6 @@ public class WindowUpdates implements GLEventListener {
 	/**
 	 * List of all chunks rendering for this player
 	 */
-//	private LinkedList<Chunk> chunks;
 	private HashSet<Chunk> chunks;
 	
 	/**
@@ -64,6 +63,11 @@ public class WindowUpdates implements GLEventListener {
 	 */
 	private GameWindow window;
 	
+	/**
+	 * Creates a controller for the windows updates
+	 * @param player The player this window updater is for
+	 * @param window The window that needs to be updated
+	 */
 	public WindowUpdates(Player player, GameWindow window) {
 		this.player = player;
 		this.window = window;
@@ -74,8 +78,8 @@ public class WindowUpdates implements GLEventListener {
 	//Contains any draw calls
 	@Override
 	public void display(GLAutoDrawable drawable) {
-		//Drawing background
 		long start = System.currentTimeMillis();
+		//Drawing background
 		GL2 gl = drawable.getGL().getGL2();
 	    gl.glClear(GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT );
 	    gl.glLoadIdentity();
@@ -86,13 +90,26 @@ public class WindowUpdates implements GLEventListener {
 		gl.glRotatef(player.getYRot(), 1f, 0f, 0f);
 		gl.glRotatef(player.getXRot(), 0f, 1f, 0f);
 		
+		gl.glLightModelfv(GL2.GL_LIGHT_MODEL_LOCAL_VIEWER, new float[] {0.0f}, 0);
+
+		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, new float[] {0.2f, 0.2f, 0.2f, 0.0f}, 0);
+		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {0, 0f, 0, 1.0f}, 0);
 		//Moving the world around the players coordinates
 		gl.glTranslatef(-player.getPos().getX(), -player.getPos().getY(), -player.getPos().getZ());
 		
 		//Drawing all of the visible chunks
 		gl.glEnable(GL2.GL_TEXTURE_2D);
+		gl.glEnable(GL2.GL_LIGHTING);
+		gl.glEnable(GL2.GL_LIGHT0);
 		gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
 		gl.glEnableClientState(GL2.GL_TEXTURE_COORD_ARRAY);
+		gl.glEnableClientState(GL2.GL_NORMAL_ARRAY);
+		
+		//Setting material properties for all the cubes
+        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT, new float[] {0.9f, 0.9f, 0.9f, 1.0f}, 0);
+        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_SPECULAR, new float[] {0.1f, 0.1f, 0.1f, 1.0f}, 0);
+		gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_DIFFUSE, new float[] {0.1f, 0.1f, 0.1f, 1.0f}, 0);
+        gl.glMaterialf(GL2.GL_FRONT_AND_BACK, GL2.GL_SHININESS, 0.1f);
 
 		for (Chunk chunk: chunks) {
 			chunk.render(gl);
@@ -101,7 +118,10 @@ public class WindowUpdates implements GLEventListener {
 		
 		gl.glDisableClientState(GL2.GL_TEXTURE_COORD_ARRAY);
 		gl.glDisableClientState(GL2.GL_VERTEX_ARRAY);
+		gl.glDisableClientState(GL2.GL_NORMAL_ARRAY);
 		gl.glDisable(GL2.GL_TEXTURE_2D);
+		gl.glDisable(GL2.GL_LIGHTING);
+		gl.glDisable(GL2.GL_LIGHT0);
 		
 //		if (System.currentTimeMillis()-start > 5) {
 //			System.out.println("Render time: "+(System.currentTimeMillis()-start)+"ms");
@@ -132,7 +152,6 @@ public class WindowUpdates implements GLEventListener {
 		
 		if (System.currentTimeMillis()-start != 0) {
 			window.changeTitle("Render time: "+(System.currentTimeMillis()-start)+"ms"+" FPS: "+1000/(System.currentTimeMillis()-start));
-//			System.out.println("Render time: "+1000/(System.currentTimeMillis()-start)+"fps");
 		}
 	}
 

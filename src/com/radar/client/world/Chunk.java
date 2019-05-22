@@ -33,9 +33,24 @@ public class Chunk {
 	private int x, z;
 	
 	/**
+	 * Array to hold all the data for all the faces in this chunk
+	 */
+	private float[] faceVerts;
+	
+	/**
+	 * Array to hold all the data for all the face normals in this chunk
+	 */
+	private float[] normals;
+	
+	/**
 	 * Holds the handle to the verticies for all the cubes in this chunk
 	 */
 	private int[] vertexHandle = new int[1];
+	
+	/**
+	 * Holds the handle to the normals for all the verticies in this chunk
+	 */
+	private int[] normalHandle = new int[1];
 	
 	/**
 	 * Holds the number of faces visible in this chunk
@@ -55,6 +70,14 @@ public class Chunk {
 	}
 	
 	/**
+	 * Called by the worldGen thread, used to do any intense processes,
+	 * before first render call
+	 */
+	public void load() {
+		generateBufferArray();
+	}
+	
+	/**
 	 * A function to add a cube to this chunk
 	 * @param cube The cube to add to the chunk
 	 */
@@ -71,26 +94,53 @@ public class Chunk {
 		//It then stores the visible cubes and gets the number of faces that are visible
 		//This is to create the right size buffer
 		if (first) {
-			for (Cube cube: cubes) {
-				if (cube.isVisible()) {
-					visibleCubes.add(cube);
-					numFaces += cube.getNumVisibleFaces();
-				}
-			}
-
-			//TODO Possibly optimize further
-//			long start = System.currentTimeMillis();
+			//Causes a little lag somethings may be able to be moved around
 			initBuffers(gl);
-//			if (System.currentTimeMillis()-start > 3) {
-//				System.out.println((System.currentTimeMillis()-start) + " "+numFaces);
-//			}
 			first = false;
 		}else {
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
 			gl.glTexCoordPointer(2, GL2.GL_FLOAT, 5*Buffers.SIZEOF_FLOAT, 3*Buffers.SIZEOF_FLOAT);
 			gl.glVertexPointer(3, GL2.GL_FLOAT, 5*Buffers.SIZEOF_FLOAT, 0l);
 			
+			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, normalHandle[0]);
+			gl.glNormalPointer(GL2.GL_FLOAT, 3*Buffers.SIZEOF_FLOAT, 0l);
+			
 			gl.glDrawArrays(GL2.GL_QUADS, 0, numFaces * 4);
+			
+		}
+	}
+	
+	/**
+	 * Used to generate the array to be buffered on the GPU on the first call
+	 */
+	private void generateBufferArray() {
+		for (Cube cube: cubes) {
+			if (cube.isVisible()) {
+				visibleCubes.add(cube);
+				numFaces += cube.getNumVisibleFaces();
+			}
+		}
+		
+		faceVerts = new float[numFaces * 4 * 5];
+		normals = new float[numFaces * 4 * 3];
+		int pos = 0;
+		
+		for (Cube cube: visibleCubes) {
+			float[][] tempFaceVerts = cube.getFaceVerts();
+			float[][] tempNormals = cube.getNormals();
+			
+			for (int i = 0; i < tempFaceVerts.length; i++) {
+				faceVerts[pos*5] = tempFaceVerts[i][0];
+				faceVerts[(pos*5)+1] = tempFaceVerts[i][1];
+				faceVerts[(pos*5)+2] = tempFaceVerts[i][2];
+				faceVerts[(pos*5)+3] = tempFaceVerts[i][3];
+				faceVerts[(pos*5)+4] = tempFaceVerts[i][4];
+				
+				normals[(pos*3)] = tempNormals[i][0];
+				normals[(pos*3)+1] = tempNormals[i][1];
+				normals[(pos*3)+2] = tempNormals[i][2];
+				pos++;
+			}
 		}
 	}
 	
@@ -99,30 +149,22 @@ public class Chunk {
 	 * @param gl Used to create the buffers for this chunk
 	 */
 	private void initBuffers(GL2 gl) {
-		float[] faceVerts = new float[numFaces * 4 * 5];
-		int pos = 0;
-		
-		for (Cube cube: visibleCubes) {
-			float[][] tempFaceVerts = cube.getFaceVerts();
-			
-			for (int i = 0; i < tempFaceVerts.length; i++) {
-				faceVerts[pos*5] = tempFaceVerts[i][0];
-				faceVerts[(pos*5)+1] = tempFaceVerts[i][1];
-				faceVerts[(pos*5)+2] = tempFaceVerts[i][2];
-				faceVerts[(pos*5)+3] = tempFaceVerts[i][3];
-				faceVerts[(pos*5)+4] = tempFaceVerts[i][4];
-				pos++;
-			}
-		}
-		
 		FloatBuffer vertexBuffer = Buffers.newDirectFloatBuffer(5 * 4 * numFaces);
+		FloatBuffer normalBuffer = Buffers.newDirectFloatBuffer(3 * 4 * numFaces);
 		
+		normalBuffer.put(normals);
+		normalBuffer.flip();
 		vertexBuffer.put(faceVerts);
 		vertexBuffer.flip();
 		
 		gl.glGenBuffers(1, vertexHandle, 0);
 		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
 		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 5 * numFaces, vertexBuffer, GL2.GL_STATIC_DRAW);
+		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
+		
+		gl.glGenBuffers(1, normalHandle, 0);
+		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, normalHandle[0]);
+		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3 * numFaces, normalBuffer, GL2.GL_STATIC_DRAW);
 		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
 	}
 	
@@ -146,6 +188,7 @@ public class Chunk {
 	 */
 	public void delete(GL2 gl) {
 		gl.glDeleteBuffers(1, vertexHandle, 0);
+		gl.glDeleteBuffers(1, normalHandle, 0);
 	}
 
 

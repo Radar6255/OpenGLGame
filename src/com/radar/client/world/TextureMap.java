@@ -52,7 +52,8 @@ public class TextureMap {
 //		cubeMapTex.enable(gl);
 //		cubeMapTex.bind(gl);
 		try {
-			File file = new File("resources/textureMap.png");
+//			File file = new File("resources/textureMap.png");
+			File file = new File("resources/largeTextureMap.png");
 			t = TextureIO.newTexture(file, true);
 			textureHeight = t.getHeight();
 			

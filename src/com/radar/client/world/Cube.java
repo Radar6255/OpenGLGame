@@ -19,8 +19,18 @@ public class Cube {
 		{0.5f, -0.5f, 0.5f, 0, 0}, {-0.5f, -0.5f, 0.5f, 0, 1}, {-0.5f, -0.5f, -0.5f, 1, 1}, {0.5f, -0.5f, -0.5f, 1, 0}
 	};
 	
+	//TODO Calculate face normals
+	private final static float[][] normals = new float[][] {
+		{0.0f, 0.0f, 1.0f}, {0.0f, -0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {-0.0f, 0.0f, 1.0f}, 
+		{0.0f, 0.0f, -1.0f}, {0.0f, -0.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {-0.0f, 0.0f, -1.0f}, 
+		{1.0f, -0.0f, -0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, 
+		{-1.0f, -0.0f, -0.0f}, {-1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, 
+		{0.0f, 1.0f, 0.0f}, {-0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, -0.0f}, //Up face
+		{0.0f, -1.0f, 0.0f}, {-0.0f, -1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, -1.0f, -0.0f}
+	};
+	
 	/**
-	 * Indicies of textures for each face
+	 * Indicies of textures for each face, current is default
 	 */
 	private int[] faceTextures = new int[] {1, 1, 1, 1, 3, 2};
 	
@@ -103,6 +113,19 @@ public class Cube {
 			}
 		}
 		return faceVerts;
+	}
+	
+	public float[][] getNormals() {
+		float[][] pointNormals = new float[numVisibleFaces*4][3];
+		int visibleFace = 0;
+		for (int i = 0; i < 6; i++) {
+			if (visibleFaces[i]) {
+				for (int v = 0; v < 4; v++) {
+					pointNormals[(visibleFace*4)+v] = new float[] {normals[(i*4) + v][0], normals[(i*4) + v][1], normals[(i*4) + v][2]};
+				}visibleFace++;
+			}
+		}
+		return pointNormals;
 	}
 	
 	/**
