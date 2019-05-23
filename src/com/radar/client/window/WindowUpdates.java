@@ -1,5 +1,6 @@
 package com.radar.client.window;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 
@@ -9,6 +10,7 @@ import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.glu.GLU;
 import com.radar.client.Player;
 import com.radar.client.world.Chunk;
+import com.radar.client.world.Coord2D;
 import com.radar.client.world.TextureMap;
 import com.radar.client.world.WorldGen;
 
@@ -21,7 +23,7 @@ public class WindowUpdates implements GLEventListener {
 	/**
 	 * List of all chunks rendering for this player
 	 */
-	private HashSet<Chunk> chunks;
+	private HashMap<Coord2D<Integer>,Chunk> chunks;
 	
 	/**
 	 * List of chunks waiting to be rendered
@@ -71,7 +73,7 @@ public class WindowUpdates implements GLEventListener {
 	public WindowUpdates(Player player, GameWindow window) {
 		this.player = player;
 		this.window = window;
-		chunks = new HashSet<Chunk>();
+		chunks = new HashMap<Coord2D<Integer>,Chunk>();
 		chunkQueue = new LinkedList<Chunk>();
 	}
 	
@@ -82,21 +84,32 @@ public class WindowUpdates implements GLEventListener {
 		//Drawing background
 		GL2 gl = drawable.getGL().getGL2();
 	    gl.glClear(GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT );
-	    gl.glLoadIdentity();
-	    player.tick();
 	    
+	    gl.glMatrixMode( GL2.GL_MODELVIEW );
+	    gl.glLoadIdentity();
+		
+	    player.tick(this);
+
+
+		gl.glLightModelfv(GL2.GL_LIGHT_MODEL_LOCAL_VIEWER, new float[] {1.0f}, 0);
+		
+		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, new float[] {0.2f, 0.2f, 0.2f, 0.0f}, 0);
+//		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {(float) Math.abs(0.5), 0, (float) Math.abs(0.5), 0.0f}, 0);
+
+		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {(float) Math.abs(0.5), (float) Math.abs(0.5), 0.0f, 0.0f}, 0);
+		
+
+		player.render(gl);
 	    //Angle, x, y, z
 	  	//Angle, verticle, horizontal
 		gl.glRotatef(player.getYRot(), 1f, 0f, 0f);
 		gl.glRotatef(player.getXRot(), 0f, 1f, 0f);
 		
-		gl.glLightModelfv(GL2.GL_LIGHT_MODEL_LOCAL_VIEWER, new float[] {0.0f}, 0);
-
-		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, new float[] {0.2f, 0.2f, 0.2f, 0.0f}, 0);
-		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {0, 0f, 0, 1.0f}, 0);
+//		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {0, 30f, 0f, 1.0f}, 0);
+		
 		//Moving the world around the players coordinates
 		gl.glTranslatef(-player.getPos().getX(), -player.getPos().getY(), -player.getPos().getZ());
-		
+
 		//Drawing all of the visible chunks
 		gl.glEnable(GL2.GL_TEXTURE_2D);
 		gl.glEnable(GL2.GL_LIGHTING);
@@ -106,12 +119,13 @@ public class WindowUpdates implements GLEventListener {
 		gl.glEnableClientState(GL2.GL_NORMAL_ARRAY);
 		
 		//Setting material properties for all the cubes
-        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT, new float[] {0.9f, 0.9f, 0.9f, 1.0f}, 0);
-        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_SPECULAR, new float[] {0.1f, 0.1f, 0.1f, 1.0f}, 0);
-		gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_DIFFUSE, new float[] {0.1f, 0.1f, 0.1f, 1.0f}, 0);
-        gl.glMaterialf(GL2.GL_FRONT_AND_BACK, GL2.GL_SHININESS, 0.1f);
+        gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, new float[] {0.8f, 0.8f, 0.8f, 1.0f}, 0);
+        gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_SPECULAR, new float[] {0.1f, 0.1f, 0.1f, 1.0f}, 0);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, new float[] {0.1f, 0.1f, 0.1f, 1.0f}, 0);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, new float[] {0.04f, 0.04f, 0.04f, 0.0f}, 0);
+        gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, 0.0f);
 
-		for (Chunk chunk: chunks) {
+		for (Chunk chunk: chunks.values()) {
 			chunk.render(gl);
 		}
 		gl.glFlush();
@@ -122,6 +136,14 @@ public class WindowUpdates implements GLEventListener {
 		gl.glDisable(GL2.GL_TEXTURE_2D);
 		gl.glDisable(GL2.GL_LIGHTING);
 		gl.glDisable(GL2.GL_LIGHT0);
+		
+		
+//		gl.glPushMatrix();
+//		gl.glLoadIdentity();
+//
+//		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {(float) Math.abs(0.5), 0, (float) Math.abs(0.5), 0.0f}, 0);
+//		
+//		gl.glPopMatrix();
 		
 //		if (System.currentTimeMillis()-start > 5) {
 //			System.out.println("Render time: "+(System.currentTimeMillis()-start)+"ms");
@@ -137,15 +159,16 @@ public class WindowUpdates implements GLEventListener {
 		//Slowing down chunk loading so that it doesnt fps drop when loading chunks
 		if (!adding && !chunkQueue.isEmpty()) {
 			clearing = true;
-			chunks.add(chunkQueue.pop());
+			Chunk temp = chunkQueue.pop();
+			chunks.put(new Coord2D<Integer>(temp.getX(), temp.getZ()), temp);
 			clearing = false;
 		}
 		
-		for (Chunk chunk: chunks) {
+		for (Chunk chunk: chunks.values()) {
 			if (chunk.distance(player.getPos().getX(), player.getPos().getZ()) > VideoSettings.renderDistance) {
 				gen.removeChunk(chunk.getX(), chunk.getZ());
 				chunk.delete(gl);
-				chunks.remove(chunk);
+				chunks.remove(new Coord2D<Integer>(chunk.getX(),chunk.getZ()));
 				break;
 			}
 		}
@@ -160,7 +183,7 @@ public class WindowUpdates implements GLEventListener {
 		gen.stop();
 		GL2 gl = drawable.getGL().getGL2();
 		
-		for (Chunk chunk: chunks) {
+		for (Chunk chunk: chunks.values()) {
 			chunk.delete(gl);
 		}
 		System.out.println("Deleted remaining chunks");
@@ -175,13 +198,15 @@ public class WindowUpdates implements GLEventListener {
 		textures = new TextureMap(gl);
 		gen = new WorldGen(player, this);
 		
-		gl.glShadeModel( GL2.GL_SMOOTH );
-		gl.glClearColor( 0f, 0f, 0f, 0f );
-	    gl.glClearDepth( 1.0f );
+		gl.glShadeModel(GL2.GL_SMOOTH);
+		gl.glClearColor(0f, 0f, 0f, 0f);
+	    gl.glClearDepth(1.0f);
 	    
 		gl.glEnable(GL2.GL_DEPTH_TEST);
         gl.glDepthFunc(GL2.GL_LEQUAL);
-	    gl.glHint(GL2.GL_PERSPECTIVE_CORRECTION_HINT, GL2.GL_NICEST );
+	    gl.glHint(GL2.GL_PERSPECTIVE_CORRECTION_HINT, GL2.GL_NICEST);
+	    
+	    gl.glMatrixMode(GL2.GL_MODELVIEW);
 	    
 //        gl.glHint(GL2.GL_PERSPECTIVE_CORRECTION_HINT, GL2.GL_DONT_CARE);
 //		createInitialVBOs(gl);
@@ -203,6 +228,10 @@ public class WindowUpdates implements GLEventListener {
 	    glu.gluPerspective( 45.0f, h, 1.0, 600.0 );
 	    gl.glMatrixMode( GL2.GL_MODELVIEW );
 	    gl.glLoadIdentity();
+	}
+	
+	public Chunk getChunk(int chunkX, int chunkZ) {
+		return chunks.get(new Coord2D<Integer>(chunkX, chunkZ));
 	}
 	
 	public void addChunk(Chunk chunk) {

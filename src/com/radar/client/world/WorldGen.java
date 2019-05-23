@@ -78,6 +78,7 @@ public class WorldGen implements Runnable {
 	 */
 	public WorldGen(Player player, WindowUpdates window) {
 		this.player = player;
+		player.addGen(this);
 		this.window = window;
 		running = true;
 		world = new ArrayList<ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>>();
@@ -105,9 +106,12 @@ public class WorldGen implements Runnable {
 	 * Function to get the contents of a chunk in the world
 	 * @param x The x position of the chunk to get
 	 * @param z The z position of the chunk to get
-	 * @return The chunk in the world at the desired position
+	 * @return The chunk in the world at the desired position, null if it doesn't exist
 	 */
 	public ArrayList<ArrayList<ArrayList<Integer>>> getChunk(int x, int z){
+		if (x+xOffset < 0 || z+zOffset < 0 || world.size() <= x+xOffset || world.get(x+xOffset).size() <= z+zOffset) {
+			return null;
+		}
 		return world.get(x + xOffset).get(z + zOffset);
 	}
 	
@@ -128,19 +132,19 @@ public class WorldGen implements Runnable {
 	 */
 	public Chunk loadChunk(int chunkX, int chunkZ) {
 		visibleChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
-		ArrayList<ArrayList<ArrayList<Integer>>> chunk = world.get(chunkX+xOffset).get(chunkZ+zOffset);
+//		ArrayList<ArrayList<ArrayList<Integer>>> chunk = world.get(chunkX+xOffset).get(chunkZ+zOffset);
 
-		Chunk creating = new Chunk(chunkX, chunkZ);
-		for (int x = 0; x < 16; x++) {
-			for (int z = 0; z < 16; z++) {
-				for (int y = 0; y < chunk.get(x).get(z).size(); y++) {
-					if (chunk.get(x).get(z).get(y) != 0) {
-						creating.addCube(new Cube(chunkX*16 + x, y, chunkZ*16 + z, 1, 1, 1, faceTextures[chunk.get(x).get(z).get(y)-1], this));
-					}
-				}
-			}
-		}
-		creating.load();
+		Chunk creating = new Chunk(chunkX, chunkZ, this);
+//		for (int x = 0; x < 16; x++) {
+//			for (int z = 0; z < 16; z++) {
+//				for (int y = 0; y < chunk.get(x).get(z).size(); y++) {
+//					if (chunk.get(x).get(z).get(y) != 0) {
+//						creating.addCube(new Cube(chunkX*16 + x, y, chunkZ*16 + z, 1, 1, 1, faceTextures[chunk.get(x).get(z).get(y)-1], this));
+//					}
+//				}
+//			}
+//		}
+//		creating.load();
 		return creating;
 	}
 	

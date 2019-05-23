@@ -1,6 +1,7 @@
 package com.radar.client;
 
 import java.awt.AWTException;
+import java.awt.Cursor;
 import java.awt.MouseInfo;
 import java.awt.Point;
 import java.awt.PointerInfo;
@@ -10,8 +11,13 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 
+import com.jogamp.opengl.GL2;
+import com.radar.client.window.WindowUpdates;
 import com.radar.client.world.Coord;
+import com.radar.client.world.WorldGen;
 
 public class Player implements KeyListener, MouseListener{
 	
@@ -29,9 +35,11 @@ public class Player implements KeyListener, MouseListener{
 	/**
 	 * Booleans to keep track of what buttons are currently pressed
 	 */
-	boolean w, a, s, d, space, shift;
+	boolean w, a, s, d, space, shift, place;
 	
 	boolean pause = false;
+	
+	private WorldGen worldGen;
 	
 	/**
 	 * The players movement speed amount
@@ -50,13 +58,13 @@ public class Player implements KeyListener, MouseListener{
 		this.xRot = xRot;
 		this.yRot = yRot;
 		
-		w = false; a = false; s = false; d = false; space = false; shift = false;
+		w = false; a = false; s = false; d = false; space = false; shift = false; place = false;
 	}
 	
 	/**
 	 * Function to run things that should be ticked for the player
 	 */
-	public void tick() {
+	public void tick(WindowUpdates window) {
 		//Getting mouse details
 		PointerInfo mouseLoc = MouseInfo.getPointerInfo();
 		//TODO Sometimes throws errors when alt-tabbing
@@ -106,6 +114,124 @@ public class Player implements KeyListener, MouseListener{
 			pos.setY(-movementSpeed + pos.getY());
 		}
 		
+		if (place) {
+			placeBlock(window);
+		}
+		
+	}
+	
+	public void render(GL2 gl) {
+		gl.glColor3f(1.0f, 1.0f, 1.0f);
+		gl.glBegin(GL2.GL_LINES);
+		gl.glVertex3f(-0.01f, 0.0f,-1.1f);
+		gl.glVertex3f(0.01f, 0.0f,-1.1f);
+		gl.glVertex3f(0.0f, 0.01f,-1.1f);
+		gl.glVertex3f(0.0f, -0.01f,-1.1f);
+		gl.glEnd();
+	}
+	
+	public void addGen(WorldGen worldGen) {
+		this.worldGen = worldGen;
+	}
+	
+	private void placeBlock(WindowUpdates window) {
+		float xVec = (float) Math.sin(Math.toRadians(xRot));
+		float yVec = (float) -Math.sin(Math.toRadians(yRot));
+		float zVec = (float) -Math.cos(Math.toRadians(xRot));
+		
+		float i = 0;
+		int chunkX = (int) Math.floor((pos.getX()+(i*xVec))/16);
+		int chunkZ = (int) Math.floor((pos.getZ()+(i*zVec))/16);
+		ArrayList<ArrayList<ArrayList<Integer>>> current = worldGen.getChunk(chunkX, chunkZ);
+		
+		while (current != null && !current.isEmpty()) {
+			float relX, relY, relZ;
+			if (pos.getX()+(i*xVec) < 0) {
+				relX = (15 - (Math.abs(pos.getX()+i*xVec+1) % 16));
+			}else {
+				relX = Math.abs(pos.getX()+i*xVec) % 16;
+			}
+			if (pos.getZ()+(i*zVec) < 0) {
+				relZ =  (15 - (Math.abs(pos.getZ()+i*zVec+1) % 16));
+			}else {
+				relZ = Math.abs(pos.getZ()+i*zVec) % 16;
+			}
+			relY = (pos.getY()+yVec*i);
+			
+//			int relX, relY, relZ;
+//			if (pos.getX()+(i*xVec) < 0) {
+//				relX = (int) (15 - (Math.abs(Math.round(pos.getX()+i*xVec)+1) % 16));
+//			}else {
+//				relX = (int) Math.round(Math.abs(pos.getX()+i*xVec) % 16);
+//			}
+//			if (pos.getZ()+(i*zVec) < 0) {
+//				relZ = (int) (15 - (Math.abs(Math.round(pos.getZ()+i*zVec)+1) % 16));
+//			}else {
+//				relZ = (int) Math.round(Math.abs(pos.getZ()+i*zVec) % 16);
+//			}
+//			relY = (int) (pos.getY()+yVec*i);
+			
+			if (current.get((int) Math.floor(relX)).get((int) Math.floor(relZ)).size() > relY && relY >= 0) {
+				if (current.get((int) Math.floor(relX)).get((int) Math.floor(relZ)).get((int) relY) != 0) {
+					current.get((int) Math.floor(relX)).get((int) Math.floor(relZ)).set((int) relY, 0);
+					try {
+						window.getChunk(chunkX, chunkZ).update(worldGen);
+					}catch(Exception e) {
+						System.out.println("Placed block out of viewing range");
+					}
+					break;
+				}
+			}if (current.get((int) Math.ceil(relX)).get((int) Math.floor(relZ)).size() > relY && relY >= 0) {
+				if (current.get((int) Math.ceil(relX)).get((int) Math.floor(relZ)).get((int) relY) != 0) {
+					current.get((int) Math.ceil(relX)).get((int) Math.floor(relZ)).set((int) relY, 0);
+					try {
+						window.getChunk(chunkX, chunkZ).update(worldGen);
+					}catch(Exception e) {
+						System.out.println("Placed block out of viewing range");
+					}
+					break;
+				}
+			}if (current.get((int) Math.floor(relX)).get((int) Math.ceil(relZ)).size() > relY && relY >= 0) {
+				if (current.get((int) Math.floor(relX)).get((int) Math.ceil(relZ)).get((int) relY) != 0) {
+					current.get((int) Math.floor(relX)).get((int) Math.ceil(relZ)).set((int) relY, 0);
+					try {
+						window.getChunk(chunkX, chunkZ).update(worldGen);
+					}catch(Exception e) {
+						System.out.println("Placed block out of viewing range");
+					}
+					break;
+				}
+			}if (current.get((int) Math.ceil(relX)).get((int) Math.ceil(relZ)).size() > relY && relY >= 0) {
+				if (current.get((int) Math.ceil(relX)).get((int) Math.ceil(relZ)).get((int) relY) != 0) {
+					current.get((int) Math.ceil(relX)).get((int) Math.ceil(relZ)).set((int) relY, 0);
+					try {
+						window.getChunk(chunkX, chunkZ).update(worldGen);
+					}catch(Exception e) {
+						System.out.println("Placed block out of viewing range");
+					}
+					break;
+				}
+			}
+			
+//			if (current.get(relX).get(relZ).size() > relY && relY >= 0) {
+//				if (current.get(relX).get(relZ).get(relY) != 0) {
+//					current.get(relX).get(relZ).set(relY, 0);
+//					try {
+//						window.getChunk(chunkX, chunkZ).update(worldGen);
+//					}catch(Exception e) {
+//						System.out.println("Placed block out of viewing range");
+//					}
+//					break;
+//				}
+//				
+//			}
+			
+			i+=0.1f;
+			chunkX = (int) Math.floor((pos.getX()+(i*xVec))/16);
+			chunkZ = (int) Math.floor((pos.getZ()+(i*zVec))/16);
+			
+			current = worldGen.getChunk(chunkX, chunkZ);
+		}
 	}
 	
 	/**
@@ -147,6 +273,9 @@ public class Player implements KeyListener, MouseListener{
 		case KeyEvent.VK_D:
 			d = true;
 			break;
+		case KeyEvent.VK_P:
+			place = true;
+			break;
 		case KeyEvent.VK_SPACE:
 			space = true;
 			break;
@@ -170,6 +299,9 @@ public class Player implements KeyListener, MouseListener{
 			break;
 		case KeyEvent.VK_D:
 			d = false;
+			break;
+		case KeyEvent.VK_P:
+			place = false;
 			break;
 		case KeyEvent.VK_SPACE:
 			space = false;

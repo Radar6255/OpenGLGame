@@ -1,6 +1,7 @@
 package com.radar.client.world;
 
 import java.nio.FloatBuffer;
+import java.util.ArrayList;
 import java.util.LinkedList;
 
 import com.jogamp.common.nio.Buffers;
@@ -26,6 +27,8 @@ public class Chunk {
 	 * Used to do some buffer creation on this chunks first render call
 	 */
 	private boolean first = true;
+	
+	private boolean update = false;
 	
 	/**
 	 * The x, z position of the chunk in the world
@@ -58,22 +61,47 @@ public class Chunk {
 	private int numFaces = 0;
 	
 	/**
+	 * Indicies of textures for each face
+	 */
+	private static int[][] faceTextures = new int[][] {{1, 1, 1, 1, 3, 2}, {4, 4, 4, 4, 4, 4}};
+	
+	/**
 	 * Creates a chunk at the specified x, z
 	 * @param x The x chunk position of this chunk
 	 * @param z The z chunk position of this chunk
 	 */
-	public Chunk(int x, int z) {
+	public Chunk(int x, int z, WorldGen gen) {
 		this.x = x;
 		this.z = z;
-		cubes = new LinkedList<>();
-		visibleCubes = new LinkedList<>();
+		
+		load(gen);
 	}
 	
+	public void update(WorldGen gen) {
+		load(gen);
+		update = true;
+	}
+
 	/**
 	 * Called by the worldGen thread, used to do any intense processes,
-	 * before first render call
+	 * before first render call, also called on block updates
 	 */
-	public void load() {
+	public void load(WorldGen gen) {
+		cubes = new LinkedList<>();
+		visibleCubes = new LinkedList<>();
+		
+		ArrayList<ArrayList<ArrayList<Integer>>> chunk = gen.getChunk(x, z);
+		
+		for (int tx = 0; tx < 16; tx++) {
+			for (int tz = 0; tz < 16; tz++) {
+				for (int ty = 0; ty < chunk.get(tx).get(tz).size(); ty++) {
+					if (chunk.get(tx).get(tz).get(ty) != 0) {
+						addCube(new Cube(x*16 + tx, ty, z*16 + tz, 1, 1, 1, faceTextures[chunk.get(tx).get(tz).get(ty)-1], gen));
+					}
+				}
+			}
+		}
+		
 		generateBufferArray();
 	}
 	
@@ -98,12 +126,18 @@ public class Chunk {
 			initBuffers(gl);
 			first = false;
 		}else {
+			if (update) {
+				delete(gl);
+				initBuffers(gl);
+				update = false;
+			}
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
 			gl.glTexCoordPointer(2, GL2.GL_FLOAT, 5*Buffers.SIZEOF_FLOAT, 3*Buffers.SIZEOF_FLOAT);
 			gl.glVertexPointer(3, GL2.GL_FLOAT, 5*Buffers.SIZEOF_FLOAT, 0l);
 			
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, normalHandle[0]);
 			gl.glNormalPointer(GL2.GL_FLOAT, 3*Buffers.SIZEOF_FLOAT, 0l);
+			
 			
 			gl.glDrawArrays(GL2.GL_QUADS, 0, numFaces * 4);
 			

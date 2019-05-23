@@ -1,6 +1,11 @@
 package com.radar.client;
 
 
+import java.awt.Cursor;
+import java.awt.Point;
+import java.awt.Toolkit;
+import java.awt.image.BufferedImage;
+
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.util.FPSAnimator;
 import com.radar.client.window.GameWindow;
@@ -38,6 +43,10 @@ public class Game extends GLCanvas{
 		
 		this.addGLEventListener(window);
 		animator.start();
+		
+		BufferedImage cursorImg = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+		Cursor blankCursor = Toolkit.getDefaultToolkit().createCustomCursor(cursorImg, new Point(0, 0), "blank cursor");
+		this.setCursor(blankCursor);
 	}
 	
 	
