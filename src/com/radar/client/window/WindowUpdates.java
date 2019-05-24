@@ -94,10 +94,9 @@ public class WindowUpdates implements GLEventListener {
 		gl.glLightModelfv(GL2.GL_LIGHT_MODEL_LOCAL_VIEWER, new float[] {1.0f}, 0);
 		
 		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, new float[] {0.2f, 0.2f, 0.2f, 0.0f}, 0);
-//		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {(float) Math.abs(0.5), 0, (float) Math.abs(0.5), 0.0f}, 0);
+//		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {(float) Math.abs(0.5), (float) Math.abs(0.5), 0.0f, 0.0f}, 0);
 
-		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {(float) Math.abs(0.5), (float) Math.abs(0.5), 0.0f, 0.0f}, 0);
-		
+//		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {(float) Math.abs(0.5), 0, (float) Math.abs(0.5), 0.0f}, 0);		
 
 		player.render(gl);
 	    //Angle, x, y, z
@@ -105,7 +104,7 @@ public class WindowUpdates implements GLEventListener {
 		gl.glRotatef(player.getYRot(), 1f, 0f, 0f);
 		gl.glRotatef(player.getXRot(), 0f, 1f, 0f);
 		
-//		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {0, 30f, 0f, 1.0f}, 0);
+		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {0, 30f, 0f, 1.0f}, 0);
 		
 		//Moving the world around the players coordinates
 		gl.glTranslatef(-player.getPos().getX(), -player.getPos().getY(), -player.getPos().getZ());

@@ -1,7 +1,6 @@
 package com.radar.client;
 
 import java.awt.AWTException;
-import java.awt.Cursor;
 import java.awt.MouseInfo;
 import java.awt.Point;
 import java.awt.PointerInfo;
@@ -11,7 +10,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 
 import com.jogamp.opengl.GL2;
@@ -35,7 +33,7 @@ public class Player implements KeyListener, MouseListener{
 	/**
 	 * Booleans to keep track of what buttons are currently pressed
 	 */
-	boolean w, a, s, d, space, shift, place;
+	boolean w, a, s, d, space, shift, breakB;
 	
 	boolean pause = false;
 	
@@ -58,7 +56,7 @@ public class Player implements KeyListener, MouseListener{
 		this.xRot = xRot;
 		this.yRot = yRot;
 		
-		w = false; a = false; s = false; d = false; space = false; shift = false; place = false;
+		w = false; a = false; s = false; d = false; space = false; shift = false; breakB = false;
 	}
 	
 	/**
@@ -78,6 +76,12 @@ public class Player implements KeyListener, MouseListener{
 			xRot = xRot + (x-centerX)/PlayerSettings.mouseSensitivity;
 			yRot = yRot + (y-centerY)/PlayerSettings.mouseSensitivity;
 		
+			if (yRot < -90) {
+				yRot = -90;
+			}if (yRot > 90) {
+				yRot = 90;
+			}
+			
 			try {
 				new Robot().mouseMove(centerX, centerY);
 			} catch (AWTException e) {
@@ -114,8 +118,8 @@ public class Player implements KeyListener, MouseListener{
 			pos.setY(-movementSpeed + pos.getY());
 		}
 		
-		if (place) {
-			placeBlock(window);
+		if (breakB) {
+			breakBlock(window);
 		}
 		
 	}
@@ -134,103 +138,93 @@ public class Player implements KeyListener, MouseListener{
 		this.worldGen = worldGen;
 	}
 	
-	private void placeBlock(WindowUpdates window) {
-		float xVec = (float) Math.sin(Math.toRadians(xRot));
+	/**
+	 * Function to break blocks, currently breaks them at the moment
+	 * @param window Window to place the block in
+	 */
+	private void breakBlock(WindowUpdates window) {
+		float axesOff = 0.1f;
+		
 		float yVec = (float) -Math.sin(Math.toRadians(yRot));
-		float zVec = (float) -Math.cos(Math.toRadians(xRot));
+		float xzComponent = (float) Math.cos(Math.toRadians(yRot));
+		
+		float xVec = (float) Math.sin(Math.toRadians(xRot)) * xzComponent;
+		float zVec = (float) -Math.cos(Math.toRadians(xRot)) * xzComponent;
 		
 		float i = 0;
-		int chunkX = (int) Math.floor((pos.getX()+(i*xVec))/16);
-		int chunkZ = (int) Math.floor((pos.getZ()+(i*zVec))/16);
-		ArrayList<ArrayList<ArrayList<Integer>>> current = worldGen.getChunk(chunkX, chunkZ);
 		
-		while (current != null && !current.isEmpty()) {
-			float relX, relY, relZ;
-			if (pos.getX()+(i*xVec) < 0) {
-				relX = (15 - (Math.abs(pos.getX()+i*xVec+1) % 16));
+		//Current x, y, z coords of the ray
+		float cx, cy, cz;
+		while (i < 50) {
+			cx = pos.getX() + i*xVec;
+			cy = pos.getY() + i*yVec;
+			cz = pos.getZ() + i*zVec;
+			
+			if (zVec < -axesOff) {
+				cz = (float) Math.ceil(cz);
+			}else if (zVec > axesOff) {
+				cz = (float) Math.floor(cz);
 			}else {
-				relX = Math.abs(pos.getX()+i*xVec) % 16;
+				cz = (float) Math.round(cz);
 			}
-			if (pos.getZ()+(i*zVec) < 0) {
-				relZ =  (15 - (Math.abs(pos.getZ()+i*zVec+1) % 16));
+			
+			if (xVec < -axesOff) {
+				cx = (float) Math.ceil(cx);
+			}else if (xVec > axesOff) {
+				cx = (float) Math.floor(cx);
 			}else {
-				relZ = Math.abs(pos.getZ()+i*zVec) % 16;
+				cx = (float) Math.round(cx);
 			}
-			relY = (pos.getY()+yVec*i);
 			
-//			int relX, relY, relZ;
-//			if (pos.getX()+(i*xVec) < 0) {
-//				relX = (int) (15 - (Math.abs(Math.round(pos.getX()+i*xVec)+1) % 16));
-//			}else {
-//				relX = (int) Math.round(Math.abs(pos.getX()+i*xVec) % 16);
-//			}
-//			if (pos.getZ()+(i*zVec) < 0) {
-//				relZ = (int) (15 - (Math.abs(Math.round(pos.getZ()+i*zVec)+1) % 16));
-//			}else {
-//				relZ = (int) Math.round(Math.abs(pos.getZ()+i*zVec) % 16);
-//			}
-//			relY = (int) (pos.getY()+yVec*i);
+			if (yVec < -axesOff) {
+				cy = (float) Math.ceil(cy);
+			}else if (yVec > axesOff) {
+				cy = (float) Math.floor(cy);
+			}else {
+				cy = (float) Math.round(cy);
+			}
 			
-			if (current.get((int) Math.floor(relX)).get((int) Math.floor(relZ)).size() > relY && relY >= 0) {
-				if (current.get((int) Math.floor(relX)).get((int) Math.floor(relZ)).get((int) relY) != 0) {
-					current.get((int) Math.floor(relX)).get((int) Math.floor(relZ)).set((int) relY, 0);
-					try {
-						window.getChunk(chunkX, chunkZ).update(worldGen);
-					}catch(Exception e) {
-						System.out.println("Placed block out of viewing range");
-					}
-					break;
+			int chunkX = (int) Math.floor(cx/16.0);
+			int chunkZ = (int) Math.floor(cz/16.0);
+			
+			ArrayList<ArrayList<ArrayList<Integer>>> current = worldGen.getChunk(chunkX, chunkZ);
+			if (current != null) {
+				int relX = (int) cx % 16;
+				int relZ = (int) cz % 16;
+				
+				if (cx < 0) {
+					relX = (int) (15 - (Math.abs(1+cx) % 16));
+				}else {
+					relX = (int) cx % 16;
 				}
-			}if (current.get((int) Math.ceil(relX)).get((int) Math.floor(relZ)).size() > relY && relY >= 0) {
-				if (current.get((int) Math.ceil(relX)).get((int) Math.floor(relZ)).get((int) relY) != 0) {
-					current.get((int) Math.ceil(relX)).get((int) Math.floor(relZ)).set((int) relY, 0);
-					try {
-						window.getChunk(chunkX, chunkZ).update(worldGen);
-					}catch(Exception e) {
-						System.out.println("Placed block out of viewing range");
-					}
-					break;
+				if (cz < 0) {
+					relZ = (int) (15 - (Math.abs(1+cz) % 16));
+				}else {
+					relZ = (int) cz % 16;
 				}
-			}if (current.get((int) Math.floor(relX)).get((int) Math.ceil(relZ)).size() > relY && relY >= 0) {
-				if (current.get((int) Math.floor(relX)).get((int) Math.ceil(relZ)).get((int) relY) != 0) {
-					current.get((int) Math.floor(relX)).get((int) Math.ceil(relZ)).set((int) relY, 0);
+			
+				if (current.get(relX).get(relZ).size() > Math.floor(cy) && current.get(relX).get(relZ).get((int) Math.floor(cy)) != 0){
+					current.get(relX).get(relZ).set((int) Math.floor(cy), 0);
 					try {
 						window.getChunk(chunkX, chunkZ).update(worldGen);
+						//Updating adjacent chunks if neccessary
+						if ((int) Math.floor(relX) == 15) {
+							window.getChunk(chunkX+1, chunkZ).update(worldGen);
+						}if ((int) Math.floor(relZ) == 15) {
+							window.getChunk(chunkX, chunkZ+1).update(worldGen);
+						}if ((int) Math.floor(relX) == 0) {
+							window.getChunk(chunkX-1, chunkZ).update(worldGen);
+						}if ((int) Math.floor(relZ) == 0) {
+							window.getChunk(chunkX, chunkZ-1).update(worldGen);
+						}
 					}catch(Exception e) {
 						System.out.println("Placed block out of viewing range");
 					}
-					break;
-				}
-			}if (current.get((int) Math.ceil(relX)).get((int) Math.ceil(relZ)).size() > relY && relY >= 0) {
-				if (current.get((int) Math.ceil(relX)).get((int) Math.ceil(relZ)).get((int) relY) != 0) {
-					current.get((int) Math.ceil(relX)).get((int) Math.ceil(relZ)).set((int) relY, 0);
-					try {
-						window.getChunk(chunkX, chunkZ).update(worldGen);
-					}catch(Exception e) {
-						System.out.println("Placed block out of viewing range");
-					}
+					breakB = false;
 					break;
 				}
 			}
-			
-//			if (current.get(relX).get(relZ).size() > relY && relY >= 0) {
-//				if (current.get(relX).get(relZ).get(relY) != 0) {
-//					current.get(relX).get(relZ).set(relY, 0);
-//					try {
-//						window.getChunk(chunkX, chunkZ).update(worldGen);
-//					}catch(Exception e) {
-//						System.out.println("Placed block out of viewing range");
-//					}
-//					break;
-//				}
-//				
-//			}
-			
-			i+=0.1f;
-			chunkX = (int) Math.floor((pos.getX()+(i*xVec))/16);
-			chunkZ = (int) Math.floor((pos.getZ()+(i*zVec))/16);
-			
-			current = worldGen.getChunk(chunkX, chunkZ);
+			i += 0.01f;
 		}
 	}
 	
@@ -273,9 +267,6 @@ public class Player implements KeyListener, MouseListener{
 		case KeyEvent.VK_D:
 			d = true;
 			break;
-		case KeyEvent.VK_P:
-			place = true;
-			break;
 		case KeyEvent.VK_SPACE:
 			space = true;
 			break;
@@ -300,9 +291,6 @@ public class Player implements KeyListener, MouseListener{
 		case KeyEvent.VK_D:
 			d = false;
 			break;
-		case KeyEvent.VK_P:
-			place = false;
-			break;
 		case KeyEvent.VK_SPACE:
 			space = false;
 			break;
@@ -321,14 +309,16 @@ public class Player implements KeyListener, MouseListener{
 
 	@Override
 	public void keyTyped(KeyEvent e) {
-		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public void mouseClicked(MouseEvent e) {
-		// TODO Auto-generated method stub
-		
+		switch (e.getButton()) {
+		case MouseEvent.BUTTON1:
+			breakB = true;
+			break;
+		}
 	}
 
 	@Override

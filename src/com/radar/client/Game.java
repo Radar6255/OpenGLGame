@@ -37,6 +37,7 @@ public class Game extends GLCanvas{
 		
 		Player player1 = new Player(0, 0, 0, 0, 0);
 		this.addKeyListener(player1);
+		this.addMouseListener(player1);
 		
 		animator = new FPSAnimator(this, 120);
 		window = new WindowUpdates(player1, gameWindow);
