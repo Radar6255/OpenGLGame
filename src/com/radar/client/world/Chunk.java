@@ -63,7 +63,7 @@ public class Chunk {
 	/**
 	 * Indicies of textures for each face
 	 */
-	private static int[][] faceTextures = new int[][] {{1, 1, 1, 1, 3, 2}, {4, 4, 4, 4, 4, 4}};
+	private static int[][] faceTextures = new int[][] {{1, 1, 1, 1, 3, 2}, {4, 4, 4, 4, 4, 4}, {2, 2, 2, 2, 2, 2}};
 	
 	/**
 	 * Creates a chunk at the specified x, z

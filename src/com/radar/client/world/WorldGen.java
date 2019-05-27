@@ -65,7 +65,7 @@ public class WorldGen implements Runnable {
 	/**
 	 * Indicies of textures for each face
 	 */
-	private int[][] faceTextures = new int[][] {{1, 1, 1, 1, 3, 2}, {4, 4, 4, 4, 4, 4}};
+//	private int[][] faceTextures = new int[][] {{1, 1, 1, 1, 3, 2}, {4, 4, 4, 4, 4, 4}, {2, 2, 2, 2, 2, 2}};
 //	private int[][] faceTextures = new int[][] {{5, 6, 7, 8, 9, 10}, {4, 4, 4, 4, 4, 4}};
 	
 
@@ -200,10 +200,11 @@ public class WorldGen implements Runnable {
 								
 //									for (int i = 0; i < (int) Math.sqrt(3000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2)); i++) {
 //									for (int i = 0; i < (int) 30+(15*(Math.cos(0.1*cubeXPos)))+(15*(Math.sin(0.1*cubeZPos))); i++) {
-									for (int i = 0; i < (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32); i++) {
+									for (int i = 0; i < (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32)-5; i++) {
 										world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(2);
-									}
-									world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(1);
+									}for (int i = (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32)-5; i < (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32); i++) {
+										world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(3);
+									}world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(1);
 								}
 							}
 						}else if (Math.abs(currentX) < renderDist && Math.abs(currentZ) < renderDist) {

@@ -94,21 +94,22 @@ public class WindowUpdates implements GLEventListener {
 		gl.glLightModelfv(GL2.GL_LIGHT_MODEL_LOCAL_VIEWER, new float[] {1.0f}, 0);
 		
 		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, new float[] {0.2f, 0.2f, 0.2f, 0.0f}, 0);
+		gl.glLightf(GL2.GL_LIGHT0, GL2.GL_LINEAR_ATTENUATION, 0.03f);
 //		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {(float) Math.abs(0.5), (float) Math.abs(0.5), 0.0f, 0.0f}, 0);
 
-//		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {(float) Math.abs(0.5), 0, (float) Math.abs(0.5), 0.0f}, 0);		
-
+//		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {0, 0, 1, 0.0f}, 0);
+		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {0, 0f, 0f, 1.0f}, 0);
+		
 		player.render(gl);
 	    //Angle, x, y, z
 	  	//Angle, verticle, horizontal
 		gl.glRotatef(player.getYRot(), 1f, 0f, 0f);
 		gl.glRotatef(player.getXRot(), 0f, 1f, 0f);
 		
-		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {0, 30f, 0f, 1.0f}, 0);
 		
 		//Moving the world around the players coordinates
 		gl.glTranslatef(-player.getPos().getX(), -player.getPos().getY(), -player.getPos().getZ());
-
+		
 		//Drawing all of the visible chunks
 		gl.glEnable(GL2.GL_TEXTURE_2D);
 		gl.glEnable(GL2.GL_LIGHTING);
@@ -224,7 +225,7 @@ public class WindowUpdates implements GLEventListener {
 		gl.glMatrixMode( GL2.GL_PROJECTION );
 	    gl.glLoadIdentity();
 	    //                          Start  End
-	    glu.gluPerspective( 45.0f, h, 1.0, 600.0 );
+	    glu.gluPerspective( 45.0f, h, 0.30f, 600.0 );
 	    gl.glMatrixMode( GL2.GL_MODELVIEW );
 	    gl.glLoadIdentity();
 	}
