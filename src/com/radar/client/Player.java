@@ -135,7 +135,6 @@ public class Player implements KeyListener, MouseListener{
 		if (breakB) {
 			breakBlock(window);
 		}
-		
 		if (place) {
 			placeBlock(window);
 		}
@@ -219,9 +218,10 @@ public class Player implements KeyListener, MouseListener{
 					zCollision++;
 					zCorrection = (float) Math.floor(pos.getZ()+zOff)+1;
 				}
-//				}
 			}
-		}if (zCollision > xCollision) {
+		}
+		
+		if (zCollision > xCollision) {
 			pos.setZ(zCorrection);
 		}else if (xCollision > zCollision) {
 			pos.setX(xCorrection);
@@ -262,9 +262,6 @@ public class Player implements KeyListener, MouseListener{
 			}else {
 				relZ = (int) (Math.floor(pos.getZ()+zOff) % 16);
 			}
-			if (relX > 15 || relX < 0 || relZ > 15 || relZ < 0) {
-				System.out.println("Verticle "+relX+" "+relZ);
-			}
 			if (current.get(relX).get(relZ).size() > Math.ceil(pos.getY()-2) && current.get(relX).get(relZ).get((int) Math.ceil(pos.getY()-2)) != 0) {
 //				pos.setY((float) Math.ceil(pos.getY()));
 				pos.setY((float) Math.round(pos.getY()));
@@ -282,7 +279,7 @@ public class Player implements KeyListener, MouseListener{
 	 * @param window Window to break the block in
 	 */
 	private void breakBlock(WindowUpdates window) {
-		float axesOff = 0.06f;
+		float axesOff = (float) Math.PI/12.0f;
 		
 		float yVec = (float) -Math.sin(Math.toRadians(yRot));
 		float xzComponent = (float) Math.cos(Math.toRadians(yRot));
@@ -304,6 +301,7 @@ public class Player implements KeyListener, MouseListener{
 			}else if (zVec > axesOff) {
 				cz = (float) Math.floor(cz);
 			}else {
+//				System.out.println("Z round "+cz+" "+Math.round(cz));
 				cz = (float) Math.round(cz);
 			}
 			
@@ -312,14 +310,15 @@ public class Player implements KeyListener, MouseListener{
 			}else if (xVec > axesOff) {
 				cx = (float) Math.floor(cx);
 			}else {
+//				System.out.println("X round "+cx+" "+Math.round(cx));
 				cx = (float) Math.round(cx);
 			}
-			
 			if (yVec < -axesOff) {
 				cy = (float) Math.ceil(cy);
 			}else if (yVec > axesOff) {
 				cy = (float) Math.floor(cy);
 			}else {
+//				System.out.println("Y round "+yVec+" "+Math.round(cy));
 				cy = (float) Math.round(cy);
 			}
 			
@@ -342,7 +341,7 @@ public class Player implements KeyListener, MouseListener{
 					relZ = (int) cz % 16;
 				}
 			
-				if (current.get(relX).get(relZ).size() > Math.floor(cy) && current.get(relX).get(relZ).get((int) Math.floor(cy)) != 0){
+				if (current.get(relX).get(relZ).size() > Math.floor(cy) && cy > 0 && current.get(relX).get(relZ).get((int) Math.floor(cy)) != 0){
 					current.get(relX).get(relZ).set((int) Math.floor(cy), 0);
 					try {
 						window.getChunk(chunkX, chunkZ).update(worldGen);
@@ -363,8 +362,8 @@ public class Player implements KeyListener, MouseListener{
 					break;
 				}
 			}
-			i += 0.01f;
-		}
+			i += 0.004f;
+		}breakB = false;
 	}
 	
 	
@@ -373,7 +372,7 @@ public class Player implements KeyListener, MouseListener{
 	 * @param window The window to place the block in
 	 */
 	private void placeBlock(WindowUpdates window) {
-		float axesOff = 0.06f;
+		float axesOff = (float) Math.PI/12.0f;
 		
 		float yVec = (float) -Math.sin(Math.toRadians(yRot));
 		float xzComponent = (float) Math.cos(Math.toRadians(yRot));
@@ -434,7 +433,7 @@ public class Player implements KeyListener, MouseListener{
 				}
 			
 				if (current.get(relX).get(relZ).size() > Math.floor(cy) && current.get(relX).get(relZ).get((int) Math.floor(cy)) != 0){
-					i -= 0.01f * 3;
+					i -= 0.004f * 1;
 					cx = pos.getX() + i*xVec;
 					cy = pos.getY() + i*yVec;
 					cz = pos.getZ() + i*zVec;
@@ -504,8 +503,8 @@ public class Player implements KeyListener, MouseListener{
 					break;
 				}
 			}
-			i += 0.01f;
-		}
+			i += 0.004f;
+		}place = false;
 	}
 	
 	/**
@@ -594,6 +593,12 @@ public class Player implements KeyListener, MouseListener{
 
 	@Override
 	public void mouseClicked(MouseEvent e) {
+		
+	}
+
+	@Override
+	public void mousePressed(MouseEvent e) {
+		//Moved here from mouseClicked to make the clicks more consistant
 		switch (e.getButton()) {
 		case MouseEvent.BUTTON1:
 			breakB = true;
@@ -602,12 +607,6 @@ public class Player implements KeyListener, MouseListener{
 			place = true;
 			break;
 		}
-	}
-
-	@Override
-	public void mousePressed(MouseEvent e) {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
