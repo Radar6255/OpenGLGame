@@ -1,7 +1,6 @@
 package com.radar.client.window;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 
 import com.jogamp.opengl.GL2;
@@ -225,15 +224,25 @@ public class WindowUpdates implements GLEventListener {
 		gl.glMatrixMode( GL2.GL_PROJECTION );
 	    gl.glLoadIdentity();
 	    //                          Start  End
-	    glu.gluPerspective( 45.0f, h, 0.30f, 600.0 );
+	    glu.gluPerspective( 45.0f, h, 0.10f, 600.0 );
 	    gl.glMatrixMode( GL2.GL_MODELVIEW );
 	    gl.glLoadIdentity();
 	}
 	
+	/**
+	 * Gets the visible chunk at a location
+	 * @param chunkX The x position of the chunk relative to other chunks
+	 * @param chunkZ The z position of the chunk relative to other chunks
+	 * @return The chunk object at that location
+	 */
 	public Chunk getChunk(int chunkX, int chunkZ) {
 		return chunks.get(new Coord2D<Integer>(chunkX, chunkZ));
 	}
 	
+	/**
+	 * Adds a chunk to be rendered to this window
+	 * @param chunk The chunk to add to the render
+	 */
 	public void addChunk(Chunk chunk) {
 		while (clearing) {}
 		if (!clearing) {

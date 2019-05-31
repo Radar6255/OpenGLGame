@@ -28,6 +28,9 @@ public class Chunk {
 	 */
 	private boolean first = true;
 	
+	/**
+	 * Used to regenerate the chunks faces if there was a block change in this chunk or an adjacent chunk
+	 */
 	private boolean update = false;
 	
 	/**
@@ -63,7 +66,7 @@ public class Chunk {
 	/**
 	 * Indicies of textures for each face
 	 */
-	private static int[][] faceTextures = new int[][] {{1, 1, 1, 1, 3, 2}, {4, 4, 4, 4, 4, 4}, {2, 2, 2, 2, 2, 2}};
+	private static int[][] faceTextures = new int[][] {{1, 1, 1, 1, 3, 2}, {4, 4, 4, 4, 4, 4}, {2, 2, 2, 2, 2, 2}, {5, 5, 5, 5, 5, 5}};
 	
 	/**
 	 * Creates a chunk at the specified x, z

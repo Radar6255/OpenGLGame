@@ -26,6 +26,31 @@ public class Player implements KeyListener, MouseListener{
 	private Coord<Float> pos;
 	
 	/**
+	 * Velocity of the player
+	 */
+	private Coord<Float> velocity;
+	
+	/**
+	 * Acceleration of the player
+	 */
+	private Coord<Float> acceleration;
+	
+	/**
+	 * Booleans for which keys
+	 */
+	boolean forward, sideways;
+	
+	/**
+	 * Boolean used to see if the player can jump at the moment
+	 */
+	boolean jump;
+	
+	/**
+	 * The size of the players hitbox
+	 */
+	static final float playerSize = 0.75f;
+	
+	/**
 	 * Rotation of the players view
 	 */
 	float xRot = 0, yRot = 0;
@@ -35,8 +60,15 @@ public class Player implements KeyListener, MouseListener{
 	 */
 	boolean w, a, s, d, space, shift, breakB, place;
 	
+	/**
+	 * Boolean to control whether the game is paused or not,
+	 * used to free mouse from the first person camera
+	 */
 	boolean pause = false;
 	
+	/**
+	 * The current world generation, used to grab chunks to check and modify
+	 */
 	private WorldGen worldGen;
 	
 	/**
@@ -52,17 +84,22 @@ public class Player implements KeyListener, MouseListener{
 	
 	public Player(float x, float y, float z, float xRot, float yRot) {
 		pos = new Coord<Float>(x,y,z);
+		velocity = new Coord<Float>(0f,0f,0f);
+		acceleration = new Coord<Float>(0f,-0.01f,0f);
 		
 		this.xRot = xRot;
 		this.yRot = yRot;
 		
 		w = false; a = false; s = false; d = false; space = false; shift = false; breakB = false; place = false;
+		jump = false;
 	}
 	
 	/**
 	 * Function to run things that should be ticked for the player
 	 */
 	public void tick(WindowUpdates window) {
+		forward = false;
+		sideways = false;
 		//Getting mouse details
 		PointerInfo mouseLoc = MouseInfo.getPointerInfo();
 		//TODO Sometimes throws errors when alt-tabbing
@@ -89,48 +126,98 @@ public class Player implements KeyListener, MouseListener{
 			}
 		}
 		
-		float xChange = 0; float zChange = 0;
+		float xChange = 0; float yChange = 0; float zChange = 0;
 		
 		//Finding the sine and cosine for the horizontal rotation
 		float sin = (float) Math.sin(Math.toRadians(xRot));
 		float cos = (float) Math.cos(Math.toRadians(xRot));
 		
+		acceleration.setX(0f);
+		acceleration.setY(-0.01f);
+		acceleration.setZ(0f);
+		
 		//Foward backward movement
 		if (w) {
-			pos.setX(movementSpeed*sin + pos.getX());
-			xChange += movementSpeed*sin;
-			pos.setZ(-movementSpeed*cos + pos.getZ());
-			zChange += -movementSpeed*cos;
-		}else if (s) {
-			pos.setX(-movementSpeed*sin + pos.getX());
-			xChange += -movementSpeed*sin;
-			pos.setZ(movementSpeed*cos + pos.getZ());
-			zChange += movementSpeed*cos;
+			acceleration.setX(movementSpeed*sin + acceleration.getX());
+			acceleration.setZ(-movementSpeed*cos + acceleration.getZ());
+			forward = true;
+		}if (s) {
+			acceleration.setX(-movementSpeed*sin + acceleration.getX());
+			acceleration.setZ(movementSpeed*cos + acceleration.getZ());
+			forward = true;
 		}
 		
 		//Left right movement
 		if (a) {
-			pos.setX(-movementSpeed*cos + pos.getX());
-			xChange += -movementSpeed*cos;
-			pos.setZ(-movementSpeed*sin + pos.getZ());
-			zChange += -movementSpeed*sin;
-		}else if (d) {
-			pos.setX(movementSpeed*cos + pos.getX());
-			xChange += movementSpeed*cos;
-			pos.setZ(movementSpeed*sin + pos.getZ());
-			zChange += movementSpeed*sin;
+			acceleration.setX(-movementSpeed*cos + acceleration.getX());
+			acceleration.setZ(-movementSpeed*sin + acceleration.getZ());
+			sideways = true;
+		}if (d) {
+			acceleration.setX(movementSpeed*cos + acceleration.getX());
+			acceleration.setZ(movementSpeed*sin + acceleration.getZ());
+			sideways = true;
+		}
+		
+		//TODO Find a way to make as fast as normal
+		if (sideways && forward) {
+			acceleration.setX(acceleration.getX()*0.5f);
+			acceleration.setZ(acceleration.getZ()*0.5f);
 		}
 		
 		//Up down movement
-		if(space) {
+		if(space && jump) {
 			pos.setY(movementSpeed + pos.getY());
+			acceleration.setY(0.14f);
+			space = false;
+			jump = false;
 		}else if (shift) {
 			pos.setY(-movementSpeed + pos.getY());
 		}
 		
-		pos.setY(pos.getY() - 0.1f);
+		velocity.setX(velocity.getX() + 0.34f*acceleration.getX());
+		velocity.setY(velocity.getY() + acceleration.getY());
+		velocity.setZ(velocity.getZ() + 0.34f*acceleration.getZ());
 		
-		collision(xChange, zChange);
+		if (velocity.getX() > 0.2) {
+			velocity.setX(0.2f);
+		}else if (velocity.getX() < -0.2) {
+			velocity.setX(-0.2f);
+		}
+		if (velocity.getY() > 0.4) {
+			velocity.setY(0.4f);
+		}else if (velocity.getY() < -0.4) {
+			velocity.setY(-0.4f);
+		}
+		if (velocity.getZ() > 0.2) {
+			velocity.setZ(0.2f);
+		}else if (velocity.getZ() < -0.2) {
+			velocity.setZ(-0.2f);
+		}
+		
+		xChange = velocity.getX();
+		yChange = velocity.getY();
+		zChange = velocity.getZ();
+		
+		pos.setX(pos.getX() + velocity.getX());
+		pos.setY(pos.getY() + velocity.getY());
+		pos.setZ(pos.getZ() + velocity.getZ());
+		
+		//X Friction
+		if (velocity.getX() > 0) {
+			velocity.setX(velocity.getX()-0.5f*velocity.getX());
+		}else {
+			velocity.setX(velocity.getX()-0.5f*velocity.getX());
+		}
+		
+		
+		//Z Friction
+		if (velocity.getZ() > 0) {
+			velocity.setZ(velocity.getZ()-0.5f*velocity.getZ());
+		}else {
+			velocity.setZ(velocity.getZ()-0.5f*velocity.getZ());
+		}
+		
+		collision(xChange, yChange, zChange, window);
 		
 		if (breakB) {
 			breakBlock(window);
@@ -144,31 +231,45 @@ public class Player implements KeyListener, MouseListener{
 	public void render(GL2 gl) {
 		gl.glColor3f(1.0f, 1.0f, 1.0f);
 		gl.glBegin(GL2.GL_LINES);
-		gl.glVertex3f(-0.003f, 0.0f,-0.3f);
-		gl.glVertex3f(0.003f, 0.0f,-0.3f);
-		gl.glVertex3f(0.0f, 0.003f,-0.3f);
-		gl.glVertex3f(0.0f, -0.003f,-0.3f);
+		gl.glVertex3f(-0.001f, 0.0f,-0.1f);
+		gl.glVertex3f(0.001f, 0.0f,-0.1f);
+		gl.glVertex3f(0.0f, 0.001f,-0.1f);
+		gl.glVertex3f(0.0f, -0.001f,-0.1f);
 		gl.glEnd();
 	}
 	
+	/**
+	 * Function to give this player a world to base collisions and block placement on
+	 * @param worldGen The world generation to give this player
+	 */
 	public void addGen(WorldGen worldGen) {
 		this.worldGen = worldGen;
 	}
 	
-	private void collision(float xChange, float zChange) {
+	/**
+	 * Function to handle player collisions with the world
+	 * @param xChange The change in the players x coord from last tick
+	 * @param yChange The change in the players y coord from last tick
+	 * @param zChange The change in the players z coord from last tick
+	 * @param window The window used to update the world for debug purposes
+	 */
+	private void collision(float xChange, float yChange, float zChange, WindowUpdates window) {
 		float xCorrection = 0;
 		float zCorrection = 0;
 		int xCollision = 0;
 		int zCollision = 0;
-		//Collision using a 2*2
+		
+		//Horizontal collisions using a 2*2
 		for (int i = 0; i < 4; i++) {
 			float xOff = 0.0f;
 			float zOff = 0.0f;
 			
 			if (i == 1 || i == 3) {
 				xOff += 1;
+//				xOff += playerSize;
 			}if (i >= 2) {
 				zOff += 1;
+//				zOff += playerSize;
 			}
 			
 			int chunkX = (int) Math.floor(Math.floor(pos.getX()+xOff)/16.0);
@@ -193,52 +294,60 @@ public class Player implements KeyListener, MouseListener{
 			}else {
 				relZ = (int) (Math.floor(pos.getZ()+zOff) % 16);
 			}
-			if (relX > 15 || relX < 0 || relZ > 15 || relZ < 0) {
-				System.out.println("Horizontal "+relX+" "+relZ);
-			}
-//			if (current.get(relX).get(relZ).size() > Math.ceil(pos.getY()-1) && current.get(relX).get(relZ).get((int) Math.ceil(pos.getY()-1)) != 0) {
-			if (current.get(relX).get(relZ).size() > Math.round(pos.getY()-1) && current.get(relX).get(relZ).get((int) Math.round(pos.getY()-1)) != 0) {
-//				if ((pos.getX() > Math.floor(pos.getX()+xOff)-1 || pos.getX() < (Math.floor(pos.getX()+xOff))+1) && (pos.getZ() > Math.floor(pos.getZ()+zOff)-1 || pos.getZ() < Math.floor(pos.getZ()+zOff)+1)) {
-				if (pos.getX() > Math.floor(pos.getX()+xOff)-1 && roundFloat(pos.getX()-xChange) <= (float) Math.floor(pos.getX()+xOff)-1) {
-					xCollision++;
-					xCorrection = (float) Math.floor(pos.getX()+xOff)-1;
-				}
-				
-				if (pos.getX() < Math.floor(pos.getX()+xOff)+1 && roundFloat(pos.getX()-xChange) >= (float) Math.floor(pos.getX()+xOff)+1) {
-					xCollision++;
-					xCorrection = (float) Math.floor(pos.getX()+xOff)+1;
-				}
-
-				if (pos.getZ() > Math.floor(pos.getZ()+zOff)-1 && roundFloat(pos.getZ()-zChange) <= (float) Math.floor(pos.getZ()+zOff)-1) {
-					zCollision++;
-					zCorrection = (float) Math.floor(pos.getZ()+zOff)-1;
-				}
-				
-				if (pos.getZ() < Math.floor(pos.getZ()+zOff)+1 && roundFloat(pos.getZ()-zChange) >= (float) Math.floor(pos.getZ()+zOff)+1) {
-					zCollision++;
-					zCorrection = (float) Math.floor(pos.getZ()+zOff)+1;
+//			if ((current.get(relX).get(relZ).size() > Math.round(pos.getY()-1) && Math.round(pos.getY()-1) >= 0 && current.get(relX).get(relZ).get((int) Math.round(pos.getY()-1)) != 0)
+//					|| (current.get(relX).get(relZ).size() > Math.round(pos.getY()) && Math.round(pos.getY()) >= 0 && current.get(relX).get(relZ).get((int) Math.round(pos.getY())) != 0)) {
+			//TODO Causes random out of bounds errors even after checking that it would be in bounds
+			if ((current.get(relX).get(relZ).size() > Math.floor(pos.getY()-1-yChange) && Math.floor(pos.getY()-1-yChange) >= 0 && current.get(relX).get(relZ).get((int) Math.floor(pos.getY()-1-yChange)) != 0)
+					|| (current.get(relX).get(relZ).size() > Math.ceil(pos.getY()-yChange) && Math.ceil(pos.getY()-yChange) >= 0 && current.get(relX).get(relZ).get((int) Math.ceil(pos.getY()-yChange)) != 0)
+					|| (current.get(relX).get(relZ).size() > Math.round(pos.getY()-0.5-yChange) && Math.round(pos.getY()-0.5-yChange) >= 0 && current.get(relX).get(relZ).get((int) Math.round(pos.getY()-0.5-yChange)) != 0)) {
+				//Check if there is a collision
+				if ((pos.getX()-(1-playerSize) > Math.floor(pos.getX()+xOff)-1 && pos.getX()+(1-playerSize) < Math.floor(pos.getX()+xOff)+1) && (pos.getZ()-(1-playerSize) > Math.floor(pos.getZ()+zOff)-1 && pos.getZ()+(1-playerSize) < Math.floor(pos.getZ()+zOff)+1)) {
+					if (pos.getX()-(1-playerSize) > Math.floor(pos.getX()+xOff)-1 && roundFloat(pos.getX()-xChange-(1-playerSize)) <= (float) Math.floor(pos.getX()+xOff)-1) {
+						xCollision++;
+						xCorrection = (float) Math.floor(pos.getX()+xOff)-1 + (1-playerSize);
+					}
+					
+					if (pos.getX()+(1-playerSize) < Math.floor(pos.getX()+xOff)+1 && roundFloat(pos.getX()-xChange+(1-playerSize)) >= (float) Math.floor(pos.getX()+xOff)+1) {
+						xCollision++;
+						xCorrection = (float) Math.floor(pos.getX()+xOff)+1 - (1-playerSize);
+					}
+	
+					if (pos.getZ()-(1-playerSize) > Math.floor(pos.getZ()+zOff)-1 && roundFloat(pos.getZ()-zChange-(1-playerSize)) <= (float) Math.floor(pos.getZ()+zOff)-1) {
+						zCollision++;
+						zCorrection = (float) Math.floor(pos.getZ()+zOff)-1 + (1-playerSize);
+					}
+					
+					if (pos.getZ()+(1-playerSize) < Math.floor(pos.getZ()+zOff)+1 && roundFloat(pos.getZ()-zChange+(1-playerSize)) >= (float) Math.floor(pos.getZ()+zOff)+1) {
+						zCollision++;
+						zCorrection = (float) Math.floor(pos.getZ()+zOff)+1 - (1-playerSize);
+					}
 				}
 			}
 		}
 		
 		if (zCollision > xCollision) {
 			pos.setZ(zCorrection);
+			velocity.setZ(0f);
 		}else if (xCollision > zCollision) {
 			pos.setX(xCorrection);
+			velocity.setX(0f);
 		}else if (zCollision != 0 && xCollision != 0){
 			pos.setX(xCorrection);
 			pos.setZ(zCorrection);
+			velocity.setX(0f);
+			velocity.setZ(0f);
 		}
 		
+		//TODO Fix jumping while on a wall from teleporting you to the top of the block
 		//Collision with the floor
 		for (int i = 0; i < 4; i++) {
-			float xOff = 0.5f;
-			float zOff = 0.5f;
-			
+			float xOff = 0.0f;
+			float zOff = 0.0f;
+		
 			if (i == 1 || i == 3) {
-				xOff += 1;
+				xOff += playerSize;
 			}if (i >= 2) {
-				zOff += 1;
+				zOff += playerSize;
 			}
 			int chunkX = (int) Math.floor(Math.floor(pos.getX()+xOff)/16.0);
 			int chunkZ = (int) Math.floor(Math.floor(pos.getZ()+zOff)/16.0);
@@ -251,7 +360,6 @@ public class Player implements KeyListener, MouseListener{
 			
 			int relX;
 			int relZ;
-			
 			if (pos.getX()+xOff < 0) {
 				relX = (int) (15 - (Math.abs(1+Math.floor(pos.getX()+xOff)) % 16));
 			}else {
@@ -262,14 +370,29 @@ public class Player implements KeyListener, MouseListener{
 			}else {
 				relZ = (int) (Math.floor(pos.getZ()+zOff) % 16);
 			}
-			if (current.get(relX).get(relZ).size() > Math.ceil(pos.getY()-2) && current.get(relX).get(relZ).get((int) Math.ceil(pos.getY()-2)) != 0) {
-//				pos.setY((float) Math.ceil(pos.getY()));
-				pos.setY((float) Math.round(pos.getY()));
-				break;
+			if (current.get(relX).get(relZ).size() > Math.ceil(pos.getY()-2) && Math.ceil(pos.getY()-2) >= 0 && current.get(relX).get(relZ).get((int) Math.ceil(pos.getY()-2)) != 0) {
+				//For debugging, shows where collision checks are made
+//				if (current.get(relX).get(relZ).get((int) Math.ceil(pos.getY()-2)) != 4) {
+//					current.get(relX).get(relZ).set((int) Math.ceil(pos.getY()-2), 4);
+//					window.getChunk(chunkX, chunkZ).update(worldGen);
+//				}
+				if (pos.getX()-(1-playerSize) > Math.floor(pos.getX()+xOff)-1 && pos.getX()+(1-playerSize) < Math.floor(pos.getX()+xOff)+1
+						&& pos.getZ()-(1-playerSize) > Math.floor(pos.getZ()+zOff)-1 && pos.getZ()+(1-playerSize) < Math.floor(pos.getZ()+zOff)+1) {
+					if (Math.ceil(pos.getY()-2) <= pos.getY()-2-yChange) {
+						velocity.setY(0f);
+						pos.setY((float) Math.ceil(pos.getY()));
+						jump = true;
+					}
+				}
 			}
 		}
 	}
 	
+	/**
+	 * Function to round a number, used to deal with precision loss in float conversions
+	 * @param in Number to round
+	 * @return The number rounded to 3 digits
+	 */
 	public float roundFloat(float in) {
 		return (float) (Math.round(in*1000)/1000.0);
 	}
@@ -611,19 +734,16 @@ public class Player implements KeyListener, MouseListener{
 
 	@Override
 	public void mouseReleased(MouseEvent e) {
-		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public void mouseEntered(MouseEvent e) {
-		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public void mouseExited(MouseEvent e) {
-		// TODO Auto-generated method stub
 		
 	}
 
