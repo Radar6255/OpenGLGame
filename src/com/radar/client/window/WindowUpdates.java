@@ -64,6 +64,8 @@ public class WindowUpdates implements GLEventListener {
 	 */
 	private GameWindow window;
 	
+	private int seed = -1;
+	
 	/**
 	 * Creates a controller for the windows updates
 	 * @param player The player this window updater is for
@@ -189,13 +191,18 @@ public class WindowUpdates implements GLEventListener {
 		
 		textures.close(gl);
 	}
+	
+	public void addSeed(int seed) {
+		this.seed = seed;
+	}
+	
 	@Override
 	public void init(GLAutoDrawable drawable) {
 		
 		// TODO Auto-generated method stub
 		GL2 gl = drawable.getGL().getGL2();
 		textures = new TextureMap(gl);
-		gen = new WorldGen(player, this);
+		gen = new WorldGen(player, seed, this);
 		
 		gl.glShadeModel(GL2.GL_SMOOTH);
 		gl.glClearColor(0f, 0f, 0f, 0f);

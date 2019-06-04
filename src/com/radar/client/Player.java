@@ -10,14 +10,20 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 import com.jogamp.opengl.GL2;
 import com.radar.client.window.WindowUpdates;
 import com.radar.client.world.Coord;
+import com.radar.client.world.Coord2D;
 import com.radar.client.world.WorldGen;
+import com.radar.common.Protocol;
 
-public class Player implements KeyListener, MouseListener{
+public class Player implements KeyListener, MouseListener, Protocol{
 	
 	
 	/**
@@ -75,6 +81,10 @@ public class Player implements KeyListener, MouseListener{
 	 * The players movement speed amount
 	 */
 	private float movementSpeed = PlayerSettings.defaultMovementSpeed;
+	
+	private Scanner in;
+	
+	private PrintStream out;
 	
 	/**
 	 * Center coordinates of the players screen
@@ -225,7 +235,65 @@ public class Player implements KeyListener, MouseListener{
 		if (place) {
 			placeBlock(window);
 		}
+	}
+	
+	public void update(String message, WindowUpdates window) {
+		String[] command = message.split(" ");
+		switch(command[0]) {
+		case(BLOCK_UPDATE):{
+			int x = Integer.parseInt(command[1]);
+			int y = Integer.parseInt(command[2]);
+			int z = Integer.parseInt(command[3]);
+			int blockID = Integer.parseInt(command[4]);
+			int chunkX = (int) Math.floor(x/16.0);
+			int chunkZ = (int) Math.floor(z/16.0);
+			
+//			ArrayList<ArrayList<ArrayList<Integer>>> current = worldGen.getChunk(chunkX, chunkZ);
+//			if (current == null || current.isEmpty()) {
+//				worldGen.loadChunk(chunkX, chunkZ);
+//			}
+//			int relX = (int) x % 16;
+//			int relZ = (int) z % 16;
+//			
+//			if (x < 0) {
+//				relX = (int) (15 - (Math.abs(1+x) % 16));
+//			}else {
+//				relX = (int) x % 16;
+//			}
+//			if (z < 0) {
+//				relZ = (int) (15 - (Math.abs(1+z) % 16));
+//			}else {
+//				relZ = (int) z % 16;
+//			}
+//			try {
+//				current.get(relX).get(relZ).set(y, blockID);
+//			}catch(Exception e) {
+//				System.out.println("Error updating block "+x+" "+y+" "+z);
+//			}
+			worldGen.placeBlock(x, y, z, chunkX, chunkZ, blockID);
+			window.getChunk(chunkX, chunkZ).update(worldGen);
+			
+			break;
+		}
+		}
+	}
+	
+	public int addSocket(Socket server, WindowUpdates window) {
+		try {
+			in = new Scanner(server.getInputStream());
+			out = new PrintStream(server.getOutputStream());
+		} catch (IOException e) {
+			System.out.println("Problem creating input or output streams");
+		}
 		
+		int seed = Integer.parseInt(in.nextLine().split(" ")[1]);
+		new Thread(()-> {
+			while (in.hasNextLine()) {
+				System.out.println("Got message");
+				update(in.nextLine(), window);
+			}
+		}).start();
+		return seed;
 	}
 	
 	public void render(GL2 gl) {
@@ -275,31 +343,11 @@ public class Player implements KeyListener, MouseListener{
 			int chunkX = (int) Math.floor(Math.floor(pos.getX()+xOff)/16.0);
 			int chunkZ = (int) Math.floor(Math.floor(pos.getZ()+zOff)/16.0);
 			
-			ArrayList<ArrayList<ArrayList<Integer>>> current = worldGen.getChunk(chunkX, chunkZ);
-			
-			if (current == null) {
-				return;
-			}
-			
-			int relX;
-			int relZ;
-			
-			if (pos.getX()+xOff < 0) {
-				relX = (int) (15 - (Math.abs(1+Math.floor(pos.getX()+xOff)) % 16));
-			}else {
-				relX = (int) (Math.floor(pos.getX()+xOff) % 16);
-			}
-			if (pos.getZ()+zOff < 0) {
-				relZ = (int) (15 - (Math.abs(1+Math.floor(pos.getZ()+zOff)) % 16));
-			}else {
-				relZ = (int) (Math.floor(pos.getZ()+zOff) % 16);
-			}
-//			if ((current.get(relX).get(relZ).size() > Math.round(pos.getY()-1) && Math.round(pos.getY()-1) >= 0 && current.get(relX).get(relZ).get((int) Math.round(pos.getY()-1)) != 0)
-//					|| (current.get(relX).get(relZ).size() > Math.round(pos.getY()) && Math.round(pos.getY()) >= 0 && current.get(relX).get(relZ).get((int) Math.round(pos.getY())) != 0)) {
+//			ArrayList<ArrayList<ArrayList<Integer>>> current = worldGen.getChunk(chunkX, chunkZ);
 			//TODO Causes random out of bounds errors even after checking that it would be in bounds
-			if ((current.get(relX).get(relZ).size() > Math.floor(pos.getY()-1-yChange) && Math.floor(pos.getY()-1-yChange) >= 0 && current.get(relX).get(relZ).get((int) Math.floor(pos.getY()-1-yChange)) != 0)
-					|| (current.get(relX).get(relZ).size() > Math.ceil(pos.getY()-yChange) && Math.ceil(pos.getY()-yChange) >= 0 && current.get(relX).get(relZ).get((int) Math.ceil(pos.getY()-yChange)) != 0)
-					|| (current.get(relX).get(relZ).size() > Math.round(pos.getY()-0.5-yChange) && Math.round(pos.getY()-0.5-yChange) >= 0 && current.get(relX).get(relZ).get((int) Math.round(pos.getY()-0.5-yChange)) != 0)) {
+			if ((worldGen.getBlock(pos.getX()+xOff, (float) Math.floor(pos.getY()-1-yChange), pos.getZ()+zOff, chunkX, chunkZ) != 0 && worldGen.getBlock(pos.getX()+xOff, (float) Math.floor(pos.getY()-1-yChange), pos.getZ()+zOff, chunkX, chunkZ) != -1)
+					|| (worldGen.getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-yChange), pos.getZ()+zOff, chunkX, chunkZ) != 0 && worldGen.getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-yChange), pos.getZ()+zOff, chunkX, chunkZ) != -1)
+					|| (worldGen.getBlock(pos.getX()+xOff, Math.round(pos.getY()-0.5-yChange), pos.getZ()+zOff, chunkX, chunkZ) != 0 && worldGen.getBlock(pos.getX()+xOff, Math.round(pos.getY()-0.5-yChange), pos.getZ()+zOff, chunkX, chunkZ) != -1)) {
 				//Check if there is a collision
 				if ((pos.getX()-(1-playerSize) > Math.floor(pos.getX()+xOff)-1 && pos.getX()+(1-playerSize) < Math.floor(pos.getX()+xOff)+1) && (pos.getZ()-(1-playerSize) > Math.floor(pos.getZ()+zOff)-1 && pos.getZ()+(1-playerSize) < Math.floor(pos.getZ()+zOff)+1)) {
 					if (pos.getX()-(1-playerSize) > Math.floor(pos.getX()+xOff)-1 && roundFloat(pos.getX()-xChange-(1-playerSize)) <= (float) Math.floor(pos.getX()+xOff)-1) {
@@ -352,25 +400,10 @@ public class Player implements KeyListener, MouseListener{
 			int chunkX = (int) Math.floor(Math.floor(pos.getX()+xOff)/16.0);
 			int chunkZ = (int) Math.floor(Math.floor(pos.getZ()+zOff)/16.0);
 			
-			ArrayList<ArrayList<ArrayList<Integer>>> current = worldGen.getChunk(chunkX, chunkZ);
+//			ArrayList<ArrayList<ArrayList<Integer>>> current = worldGen.getChunk(chunkX, chunkZ);
 			
-			if (current == null) {
-				return;
-			}
-			
-			int relX;
-			int relZ;
-			if (pos.getX()+xOff < 0) {
-				relX = (int) (15 - (Math.abs(1+Math.floor(pos.getX()+xOff)) % 16));
-			}else {
-				relX = (int) (Math.floor(pos.getX()+xOff) % 16);
-			}
-			if (pos.getZ()+zOff < 0) {
-				relZ = (int) (15 - (Math.abs(1+Math.floor(pos.getZ()+zOff)) % 16));
-			}else {
-				relZ = (int) (Math.floor(pos.getZ()+zOff) % 16);
-			}
-			if (current.get(relX).get(relZ).size() > Math.ceil(pos.getY()-2) && Math.ceil(pos.getY()-2) >= 0 && current.get(relX).get(relZ).get((int) Math.ceil(pos.getY()-2)) != 0) {
+			if (worldGen.getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-2), pos.getZ()+zOff, chunkX, chunkZ) != 0 && worldGen.getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-2), pos.getZ()+zOff, chunkX, chunkZ) != -1) {
+//			if (current.get(relX).get(relZ).size() > Math.ceil(pos.getY()-2) && Math.ceil(pos.getY()-2) >= 0 && current.get(relX).get(relZ).get((int) Math.ceil(pos.getY()-2)) != 0) {
 				//For debugging, shows where collision checks are made
 //				if (current.get(relX).get(relZ).get((int) Math.ceil(pos.getY()-2)) != 4) {
 //					current.get(relX).get(relZ).set((int) Math.ceil(pos.getY()-2), 4);
@@ -463,9 +496,13 @@ public class Player implements KeyListener, MouseListener{
 				}else {
 					relZ = (int) cz % 16;
 				}
-			
+				
 				if (current.get(relX).get(relZ).size() > Math.floor(cy) && cy > 0 && current.get(relX).get(relZ).get((int) Math.floor(cy)) != 0){
 					current.get(relX).get(relZ).set((int) Math.floor(cy), 0);
+					if (Game.MULTIPLAYER) {
+						out.println(BLOCK_UPDATE+" "+(int) cx+" "+(int) cy+" "+(int) cz+" 0");
+					}
+					worldGen.editedChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
 					try {
 						window.getChunk(chunkX, chunkZ).update(worldGen);
 						//Updating adjacent chunks if neccessary
@@ -607,6 +644,10 @@ public class Player implements KeyListener, MouseListener{
 						current.get(relX).get(relZ).add(0);
 					}
 					current.get(relX).get(relZ).set((int) Math.floor(cy), 1);
+					if (Game.MULTIPLAYER) {
+						out.println(BLOCK_UPDATE+" "+(int) cx+" "+(int) cy+" "+(int) cz+" 1");
+					}
+					worldGen.editedChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
 					try {
 						window.getChunk(chunkX, chunkZ).update(worldGen);
 						//Updating adjacent chunks if neccessary

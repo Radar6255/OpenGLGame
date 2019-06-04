@@ -5,12 +5,13 @@ import java.awt.Cursor;
 import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.net.Socket;
 
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.util.FPSAnimator;
 import com.radar.client.window.GameWindow;
 import com.radar.client.window.WindowUpdates;
-import com.radar.client.world.TextureMap;
 
 /**
  * @author radar
@@ -29,10 +30,12 @@ public class Game extends GLCanvas{
 	 */
 	WindowUpdates window;
 	
+	public static boolean MULTIPLAYER = false;
+	
 	/**
 	 * Used to set up the games pieces
 	 */
-	public Game() {
+	public Game(String[] args) {
 		GameWindow gameWindow = new GameWindow(1200,800,"OpenGL Tests",this);
 		
 		Player player1 = new Player(0, 200, 0, 0, 0);
@@ -41,6 +44,18 @@ public class Game extends GLCanvas{
 		
 		animator = new FPSAnimator(this, 120);
 		window = new WindowUpdates(player1, gameWindow);
+		
+		if (args.length > 1) {
+			MULTIPLAYER = true;
+			String hostname = args[0];
+			int port = Integer.parseInt(args[1]);
+			try {
+				Socket server = new Socket(hostname, port);
+				window.addSeed(player1.addSocket(server, window));
+			} catch (IOException e) {
+				System.out.println("IOException when connecting to server");
+			}
+		}
 		
 		this.addGLEventListener(window);
 		animator.start();
@@ -64,6 +79,6 @@ public class Game extends GLCanvas{
 	 * @param args Not used
 	 */
 	public static void main(String[] args) {
-		new Game();
+		new Game(args);
 	}
 }

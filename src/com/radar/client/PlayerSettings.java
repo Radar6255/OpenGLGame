@@ -9,5 +9,5 @@ class PlayerSettings {
 	/**
 	 * Players mouse sensitivity
 	 */
-	protected static float mouseSensitivity = 30.0f;
+	protected static float mouseSensitivity = 40.0f;
 }

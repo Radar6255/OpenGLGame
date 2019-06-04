@@ -1,14 +1,19 @@
 package com.radar.client.world;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Random;
 
+import com.radar.client.Game;
 import com.radar.client.Player;
 import com.radar.client.window.WindowUpdates;
+import com.radar.common.WorldIO;
 
 /**
  * @author radar
+ * Used by the client to generate terrain
+ * 
  * Class to generate the world on a seperate thread
  * Plan is to create the world in a data structure
  * Then also create the cube objects on this thread
@@ -21,7 +26,7 @@ public class WorldGen implements Runnable {
 	/**
 	 * Holds the data for all the blocks in world
 	 */
-	ArrayList<ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>> world;
+	volatile ArrayList<ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>> world;
 	
 	//TODO Make a setting variable
 	public static int renderDist = 9;
@@ -63,28 +68,43 @@ public class WorldGen implements Runnable {
 	private HashSet<Coord2D<Integer>> visibleChunks;
 	
 	/**
+	 * Keeps track of all chunks that have been modified from default generation
+	 */
+	public HashSet<Coord2D<Integer>> editedChunks;
+	
+	/**
 	 * Indicies of textures for each face
 	 */
 //	private int[][] faceTextures = new int[][] {{1, 1, 1, 1, 3, 2}, {4, 4, 4, 4, 4, 4}, {2, 2, 2, 2, 2, 2}};
 //	private int[][] faceTextures = new int[][] {{5, 6, 7, 8, 9, 10}, {4, 4, 4, 4, 4, 4}};
 	
-
+	private HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Integer>>>> saved;
+	
 	private float[][][] gradient;
 	
+	private int seed = -1;
+	private WorldIO worldIO;
 	/**
 	 * Constructor to make the world generation thread and start it
 	 * @param player The player to generate chunks for
 	 * @param window The window to display the chunks on
 	 */
-	public WorldGen(Player player, WindowUpdates window) {
+	public WorldGen(Player player, int seed, WindowUpdates window) {
 		this.player = player;
 		player.addGen(this);
 		this.window = window;
+		worldIO = new WorldIO();
 		running = true;
 		world = new ArrayList<ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>>();
 		visibleChunks = new HashSet<>();
-//		generatedChunks = new HashSet<>();
-		genGradient(1000);
+		editedChunks = new HashSet<>();
+		
+		if (!Game.MULTIPLAYER) {
+			saved = worldIO.load("world.dat");
+			seed = worldIO.getSeed();
+		}
+		this.seed = seed;
+		genGradient(1000, seed);
 		thread = new Thread(this);
 		thread.start();
 	}
@@ -93,6 +113,7 @@ public class WorldGen implements Runnable {
 	 * Shuts down this objects thread
 	 */
 	public void stop() {
+		worldIO.save(world, editedChunks, this, seed);
 		running = false;
 		try {
 			thread.join();
@@ -132,20 +153,79 @@ public class WorldGen implements Runnable {
 	 */
 	public Chunk loadChunk(int chunkX, int chunkZ) {
 		visibleChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
-//		ArrayList<ArrayList<ArrayList<Integer>>> chunk = world.get(chunkX+xOffset).get(chunkZ+zOffset);
-
 		Chunk creating = new Chunk(chunkX, chunkZ, this);
-//		for (int x = 0; x < 16; x++) {
-//			for (int z = 0; z < 16; z++) {
-//				for (int y = 0; y < chunk.get(x).get(z).size(); y++) {
-//					if (chunk.get(x).get(z).get(y) != 0) {
-//						creating.addCube(new Cube(chunkX*16 + x, y, chunkZ*16 + z, 1, 1, 1, faceTextures[chunk.get(x).get(z).get(y)-1], this));
-//					}
-//				}
-//			}
-//		}
-//		creating.load();
 		return creating;
+	}
+	
+	/**
+	 * @param x The x position of the block
+	 * @param y The y position of the block
+	 * @param z The z position of the block
+	 * @param chunkX The chunk the block is in x's position
+	 * @param chunkZ The chunk the block is in z's position
+	 * @return The blockID at that position
+	 */
+	public int getBlock(float x, float y, float z, int chunkX, int chunkZ) {
+		ArrayList<ArrayList<ArrayList<Integer>>> current = getChunk(chunkX, chunkZ);
+		
+		if (current == null) {
+			return -1;
+		}
+		
+		int relX;
+		int relZ;
+		
+		if (x < 0) {
+			relX = (int) (15 - (Math.abs(1+Math.floor(x)) % 16));
+		}else {
+			relX = (int) (Math.floor(x) % 16);
+		}
+		if (z < 0) {
+			relZ = (int) (15 - (Math.abs(1+Math.floor(z)) % 16));
+		}else {
+			relZ = (int) (Math.floor(z) % 16);
+		}
+		
+		if (current.get(relX).get(relZ).size() > Math.floor(y) && Math.floor(y) >= 0) {
+			return current.get(relX).get(relZ).get((int) Math.floor(y));
+		}else {
+			return -1;
+		}
+	}
+	
+	/**
+	 * @param x The x position of the block
+	 * @param y The y position of the block
+	 * @param z The z position of the block
+	 * @param chunkX The chunk the block is in x's position
+	 * @param chunkZ The chunk the block is in z's position
+	 * @param blockID The blockID be placed at this position
+	 */
+	public void placeBlock(float x, float y, float z, int chunkX, int chunkZ, int blockID) {
+		ArrayList<ArrayList<ArrayList<Integer>>> current = getChunk(chunkX, chunkZ);
+		
+		if (current == null) {
+			return;
+		}
+		
+		int relX;
+		int relZ;
+		
+		if (x < 0) {
+			relX = (int) (15 - (Math.abs(1+Math.floor(x)) % 16));
+		}else {
+			relX = (int) (Math.floor(x) % 16);
+		}
+		if (z < 0) {
+			relZ = (int) (15 - (Math.abs(1+Math.floor(z)) % 16));
+		}else {
+			relZ = (int) (Math.floor(z) % 16);
+		}
+		
+		if (current.get(relX).get(relZ).size() > Math.floor(y) && Math.floor(y) >= 0) {
+			current.get(relX).get(relZ).set((int) Math.floor(y), blockID);
+			System.out.println("Changed block "+x+" "+y+" "+z);
+		}
 	}
 	
 	@Override
@@ -188,7 +268,13 @@ public class WorldGen implements Runnable {
 					
 					if (!visibleChunks.contains(new Coord2D<Integer>(currentX+playerChunkX, currentZ+playerChunkZ))) {
 						
-						if (world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).size() == 0) {
+						
+						//If the chunk has been loaded from file, use that instead of regenerating the chunk
+						if (saved != null && saved.containsKey(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ))) {
+							world.get(currentX + playerChunkX + xOffset).set(currentZ + playerChunkZ + zOffset, saved.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)));
+							saved.remove(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ));
+							editedChunks.add(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ));
+						}else if (world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).size() == 0) {
 						
 							for (int cubeX = 0; cubeX < 16; cubeX++) {
 								world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).add(new ArrayList<ArrayList<Integer>>());
@@ -227,10 +313,17 @@ public class WorldGen implements Runnable {
 	
 	/**
 	 * Function to generate a random set of weights for gradients in perlin noise
+	 * Uses the current seed value if there is one
 	 * @param size The size of the random matrix
 	 */
-	private void genGradient(int size) {
-		Random rand = new Random();
+	private void genGradient(int size, int seed) {
+		Random rand;
+		if (seed != -1) {
+			rand = new Random(seed);
+		}else {
+			seed = new Random().nextInt();
+			rand = new Random(seed);
+		}
 		gradient = new float[size][size][2];
 		for (int x = 0; x < size; x++) {
 			for (int y = 0; y < size; y++) {
