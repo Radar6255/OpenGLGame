@@ -111,6 +111,7 @@ public class WindowUpdates implements GLEventListener {
 		//Moving the world around the players coordinates
 		gl.glTranslatef(-player.getPos().getX(), -player.getPos().getY(), -player.getPos().getZ());
 		
+		
 		//Drawing all of the visible chunks
 		gl.glEnable(GL2.GL_TEXTURE_2D);
 		gl.glEnable(GL2.GL_LIGHTING);
@@ -137,7 +138,7 @@ public class WindowUpdates implements GLEventListener {
 		gl.glDisable(GL2.GL_TEXTURE_2D);
 		gl.glDisable(GL2.GL_LIGHTING);
 		gl.glDisable(GL2.GL_LIGHT0);
-		
+		player.currentBlockVisual(gl);
 		
 //		gl.glPushMatrix();
 //		gl.glLoadIdentity();
@@ -150,20 +151,22 @@ public class WindowUpdates implements GLEventListener {
 //			System.out.println("Render time: "+(System.currentTimeMillis()-start)+"ms");
 //		}
 		
-		//Old system may bring back
-//		if (!adding && !chunkQueue.isEmpty()) {
-//			clearing = true;
-//			chunks.addAll(chunkQueue);
-//			chunkQueue.clear();
-//			clearing = false;
-//		}
-		//Slowing down chunk loading so that it doesnt fps drop when loading chunks
+		//Loads all chunks available to load from the world generation thread
 		if (!adding && !chunkQueue.isEmpty()) {
 			clearing = true;
-			Chunk temp = chunkQueue.pop();
-			chunks.put(new Coord2D<Integer>(temp.getX(), temp.getZ()), temp);
+			for (Chunk temp: chunkQueue) {
+				chunks.put(new Coord2D<Integer>(temp.getX(), temp.getZ()), temp);
+			}
+			chunkQueue.clear();
 			clearing = false;
 		}
+		//Slowing down chunk loading so that it doesnt fps drop when loading chunks
+//		if (!adding && !chunkQueue.isEmpty()) {
+//			clearing = true;
+//			Chunk temp = chunkQueue.pop();
+//			chunks.put(new Coord2D<Integer>(temp.getX(), temp.getZ()), temp);
+//			clearing = false;
+//		}
 		
 		for (Chunk chunk: chunks.values()) {
 			if (chunk.distance(player.getPos().getX(), player.getPos().getZ()) > VideoSettings.renderDistance) {

@@ -41,7 +41,7 @@ public class WorldIO {
 	 * @param gen WorldGen object, used to get the chunks
 	 * @param genSeed The seed this world was generated with
 	 */
-	public void save(ArrayList<ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>> world, HashSet<Coord2D<Integer>> editedChunks, WorldGen gen, int genSeed) {
+	public void save(HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Integer>>>> world, HashSet<Coord2D<Integer>> editedChunks, WorldGen gen, int genSeed) {
 		System.out.println("Saving world...");
 		PrintStream out;
 		try {
@@ -91,46 +91,50 @@ public class WorldIO {
 			System.out.println("Input file not found, world not saved");
 			return null;
 		}
-		
-		HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Integer>>>> out = new HashMap<>();
-		if (in.hasNextLine()) {
-			String seedS = in.nextLine();
-			this.seed = Integer.parseInt(seedS);
-		}else {
-			System.out.println("Failed to load file");
-			in.close();
-			return out;
-		}
-		
-		while (in.hasNextLine()) {
-			String line = in.nextLine();
-			String[] coords = line.split(" ");
-			
-			if (coords.length < 1) {
-				break;
+		try {
+			HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Integer>>>> out = new HashMap<>();
+			if (in.hasNextLine()) {
+				String seedS = in.nextLine();
+				this.seed = Integer.parseInt(seedS);
+			}else {
+				System.out.println("Failed to load file");
+				in.close();
+				return out;
 			}
-			//Creating the key for the hash map to use later
-			Coord2D<Integer> loadPos = new Coord2D<Integer>(Integer.parseInt(coords[0]), Integer.parseInt(coords[1]));
 			
-			String chunkData = in.nextLine();
-			
-			ArrayList<ArrayList<ArrayList<Integer>>> creating = new ArrayList<ArrayList<ArrayList<Integer>>>();
-			String[] xArrays = chunkData.split(":");
-			for (int x = 1; x < 17; x++) {
-				creating.add(new ArrayList<ArrayList<Integer>>());
-				String[] zArrays = xArrays[x].split(";");
-				for (int z = 1; z < 17; z++) {
-					creating.get(x-1).add(new ArrayList<Integer>());
-					for (String block: zArrays[z].split(",")) {
-						creating.get(x-1).get(z-1).add(Integer.parseInt(block));
+			while (in.hasNextLine()) {
+				String line = in.nextLine();
+				String[] coords = line.split(" ");
+				
+				if (coords.length < 1) {
+					break;
+				}
+				//Creating the key for the hash map to use later
+				Coord2D<Integer> loadPos = new Coord2D<Integer>(Integer.parseInt(coords[0]), Integer.parseInt(coords[1]));
+				
+				String chunkData = in.nextLine();
+				
+				ArrayList<ArrayList<ArrayList<Integer>>> creating = new ArrayList<ArrayList<ArrayList<Integer>>>();
+				String[] xArrays = chunkData.split(":");
+				for (int x = 1; x < 17; x++) {
+					creating.add(new ArrayList<ArrayList<Integer>>());
+					String[] zArrays = xArrays[x].split(";");
+					for (int z = 1; z < 17; z++) {
+						creating.get(x-1).add(new ArrayList<Integer>());
+						for (String block: zArrays[z].split(",")) {
+							creating.get(x-1).get(z-1).add(Integer.parseInt(block));
+						}
 					}
 				}
+				out.put(loadPos, creating);
 			}
-			out.put(loadPos, creating);
-		}
 		
-		in.close();
-		System.out.println("Finished loading world from file!");
-		return out;
+			in.close();
+			System.out.println("Finished loading world from file!");
+			return out;
+		}catch(Exception e) {
+			System.out.println("Error loading file!!!");
+			return null;
+		}
 	}
 }

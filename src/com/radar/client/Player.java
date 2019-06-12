@@ -26,6 +26,23 @@ import com.radar.common.Protocol;
 public class Player implements KeyListener, MouseListener, Protocol{
 	
 	
+//	private final static float[][] verts = new float[][] {
+//		{0.51f, 0.51f, 0.51f}, {0.51f, -0.51f, 0.51f}, {-0.51f, -0.51f, 0.51f}, {-0.51f, 0.51f, 0.51f},
+//		{0.51f, 0.51f, -0.51f}, {0.51f, -0.51f, -0.51f}, {-0.51f, -0.51f, -0.51f}, {-0.51f, 0.51f, -0.51f},
+//		{0.51f, 0.51f, 0.51f}, {0.51f, -0.51f, 0.51f}, {0.51f, -0.51f, -0.51f}, {0.51f, 0.51f, -0.51f},
+//		{-0.51f, 0.51f, 0.51f}, {-0.51f, -0.51f, 0.51f}, {-0.51f, -0.51f, -0.51f}, {-0.51f, 0.51f, -0.51f},
+//		{0.51f, 0.51f, 0.51f}, {-0.51f, 0.51f, 0.51f}, {-0.51f, 0.51f, -0.51f}, {0.51f, 0.51f, -0.51f},
+//		{0.51f, -0.51f, 0.51f}, {-0.51f, -0.51f, 0.51f}, {-0.51f, -0.51f, -0.51f}, {0.51f, -0.51f, -0.51f}
+//	};
+	
+	private final static float[][] verts = new float[][] {
+		{0.5f, 0.5f, 0.5f, 1, 1}, {0.5f, -0.5f, 0.5f, 1, 0}, {-0.5f, -0.5f, 0.5f, 0, 0}, {-0.5f, 0.5f, 0.5f, 0, 1},
+		{0.5f, 0.5f, -0.5f, 1, 1}, {0.5f, -0.5f, -0.5f, 1, 0}, {-0.5f, -0.5f, -0.5f, 0, 0}, {-0.5f, 0.5f, -0.5f, 0, 1},
+		{0.5f, 0.5f, 0.5f, 1, 1}, {0.5f, -0.5f, 0.5f, 1, 0}, {0.5f, -0.5f, -0.5f, 0, 0}, {0.5f, 0.5f, -0.5f, 0, 1},
+		{-0.5f, 0.5f, 0.5f, 1, 1}, {-0.5f, -0.5f, 0.5f, 1, 0}, {-0.5f, -0.5f, -0.5f, 0, 0}, {-0.5f, 0.5f, -0.5f, 0, 1},
+		{0.5f, 0.5f, 0.5f, 0, 0}, {-0.5f, 0.5f, 0.5f, 0, 1}, {-0.5f, 0.5f, -0.5f, 1, 1}, {0.5f, 0.5f, -0.5f, 1, 0},
+		{0.5f, -0.5f, 0.5f, 0, 0}, {-0.5f, -0.5f, 0.5f, 0, 1}, {-0.5f, -0.5f, -0.5f, 1, 1}, {0.5f, -0.5f, -0.5f, 1, 0}
+	};
 	/**
 	 * Position of the player
 	 */
@@ -120,8 +137,8 @@ public class Player implements KeyListener, MouseListener, Protocol{
 
 		if (!pause) {
 			//Finding the mouse movement and changing rotation
-			xRot = xRot + (x-centerX)/PlayerSettings.mouseSensitivity;
-			yRot = yRot + (y-centerY)/PlayerSettings.mouseSensitivity;
+			xRot = xRot + (x-centerX)*PlayerSettings.mouseSensitivity;
+			yRot = yRot + (y-centerY)*PlayerSettings.mouseSensitivity;
 		
 			if (yRot < -90) {
 				yRot = -90;
@@ -168,10 +185,11 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			sideways = true;
 		}
 		
-		//TODO Find a way to make as fast as normal
 		if (sideways && forward) {
-			acceleration.setX(acceleration.getX()*0.5f);
-			acceleration.setZ(acceleration.getZ()*0.5f);
+			float standardX = acceleration.getX()/((float) Math.sqrt(Math.pow(acceleration.getX(),2)+Math.pow(acceleration.getZ(),2)));
+			float standardZ = acceleration.getZ()/((float) Math.sqrt(Math.pow(acceleration.getX(),2)+Math.pow(acceleration.getZ(),2)));
+			acceleration.setX(standardX*movementSpeed);
+			acceleration.setZ(standardZ*movementSpeed);
 		}
 		
 		//Up down movement
@@ -235,6 +253,91 @@ public class Player implements KeyListener, MouseListener, Protocol{
 		if (place) {
 			placeBlock(window);
 		}
+	}
+	
+	public void currentBlockVisual(GL2 gl) {
+		gl.glColor3f(0.0f, 0.0f, 0.0f);
+//		gl.glBegin(GL2.GL_POLYGON);
+		gl.glBegin(GL2.GL_LINES);
+		gl.glLineWidth(3f);
+		float axesOff = (float) Math.PI/12.0f;
+		
+		float yVec = (float) -Math.sin(Math.toRadians(yRot));
+		float xzComponent = (float) Math.cos(Math.toRadians(yRot));
+		
+		float xVec = (float) Math.sin(Math.toRadians(xRot)) * xzComponent;
+		float zVec = (float) -Math.cos(Math.toRadians(xRot)) * xzComponent;
+		
+		float i = 0;
+		
+		//Current x, y, z coords of the ray
+		float cx, cy, cz;
+		while (i < 50) {
+			cx = pos.getX() + i*xVec;
+			cy = pos.getY() + i*yVec;
+			cz = pos.getZ() + i*zVec;
+			
+			if (zVec < -axesOff) {
+				cz = (float) Math.ceil(cz);
+			}else if (zVec > axesOff) {
+				cz = (float) Math.floor(cz);
+			}else {
+				cz = (float) Math.round(cz);
+			}
+			
+			if (xVec < -axesOff) {
+				cx = (float) Math.ceil(cx);
+			}else if (xVec > axesOff) {
+				cx = (float) Math.floor(cx);
+			}else {
+				cx = (float) Math.round(cx);
+			}
+			if (yVec < -axesOff) {
+				cy = (float) Math.ceil(cy);
+			}else if (yVec > axesOff) {
+				cy = (float) Math.floor(cy);
+			}else {
+				cy = (float) Math.round(cy);
+			}
+			
+			int chunkX = (int) Math.floor(cx/16.0);
+			int chunkZ = (int) Math.floor(cz/16.0);
+			
+			ArrayList<ArrayList<ArrayList<Integer>>> current = worldGen.getChunk(chunkX, chunkZ);
+			if (current != null) {
+				int relX = (int) cx % 16;
+				int relZ = (int) cz % 16;
+				
+				if (cx < 0) {
+					relX = (int) (15 - (Math.abs(1+cx) % 16));
+				}else {
+					relX = (int) cx % 16;
+				}
+				if (cz < 0) {
+					relZ = (int) (15 - (Math.abs(1+cz) % 16));
+				}else {
+					relZ = (int) cz % 16;
+				}
+				//TODO Fix random out of bounds errors
+				try {
+					if (current.get(relX).get(relZ).size() > Math.floor(cy) && cy > 0 && current.get(relX).get(relZ).get((int) Math.floor(cy)) != 0){
+						
+						for (int f = 0; f < verts.length; f++) {
+//						gl.glVertex3fv(Cube.verts[f], 0);
+							gl.glVertex3f(verts[f][0]+(int) cx, verts[f][1]+((float) Math.floor(cy)), verts[f][2]+(int) cz);
+//						for (int p = 0; p < 3; p++) {
+//							gl.glVertex
+//						}
+						}
+						break;
+					}
+				}catch(Exception e) {
+					System.out.println("Caught random out of bounds");
+				}
+			}
+			i += 0.004f;
+		}
+		gl.glEnd();
 	}
 	
 	public void update(String message, WindowUpdates window) {
@@ -326,67 +429,68 @@ public class Player implements KeyListener, MouseListener, Protocol{
 		float zCorrection = 0;
 		int xCollision = 0;
 		int zCollision = 0;
+		//Only do horizontal collision checks when you have moved horizontally
+		if (xChange != 0 || zChange != 0) {
+			//Horizontal collisions using a 2*2
+			for (int i = 0; i < 4; i++) {
+				float xOff = 0.0f;
+				float zOff = 0.0f;
+				
+				if (i == 1 || i == 3) {
+					xOff += 1;
+	//				xOff += playerSize;
+				}if (i >= 2) {
+					zOff += 1;
+	//				zOff += playerSize;
+				}
+				
+				int chunkX = (int) Math.floor(Math.floor(pos.getX()+xOff)/16.0);
+				int chunkZ = (int) Math.floor(Math.floor(pos.getZ()+zOff)/16.0);
+				
+	//			ArrayList<ArrayList<ArrayList<Integer>>> current = worldGen.getChunk(chunkX, chunkZ);
+				//TODO Causes random out of bounds errors even after checking that it would be in bounds
+				if ((worldGen.getBlock(pos.getX()+xOff, (float) Math.floor(pos.getY()-1-yChange), pos.getZ()+zOff, chunkX, chunkZ) != 0 && worldGen.getBlock(pos.getX()+xOff, (float) Math.floor(pos.getY()-1-yChange), pos.getZ()+zOff, chunkX, chunkZ) != -1)
+						|| (worldGen.getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-yChange), pos.getZ()+zOff, chunkX, chunkZ) != 0 && worldGen.getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-yChange), pos.getZ()+zOff, chunkX, chunkZ) != -1)
+						|| (worldGen.getBlock(pos.getX()+xOff, Math.round(pos.getY()-0.5-yChange), pos.getZ()+zOff, chunkX, chunkZ) != 0 && worldGen.getBlock(pos.getX()+xOff, Math.round(pos.getY()-0.5-yChange), pos.getZ()+zOff, chunkX, chunkZ) != -1)) {
+					//Check if there is a collision
+					if ((pos.getX()-(1-playerSize) > Math.floor(pos.getX()+xOff)-1 && pos.getX()+(1-playerSize) < Math.floor(pos.getX()+xOff)+1) && (pos.getZ()-(1-playerSize) > Math.floor(pos.getZ()+zOff)-1 && pos.getZ()+(1-playerSize) < Math.floor(pos.getZ()+zOff)+1)) {
+						if (pos.getX()-(1-playerSize) > Math.floor(pos.getX()+xOff)-1 && roundFloat(pos.getX()-xChange-(1-playerSize)) <= (float) Math.floor(pos.getX()+xOff)-1) {
+							xCollision++;
+							xCorrection = (float) Math.floor(pos.getX()+xOff)-1 + (1-playerSize);
+						}
+						
+						if (pos.getX()+(1-playerSize) < Math.floor(pos.getX()+xOff)+1 && roundFloat(pos.getX()-xChange+(1-playerSize)) >= (float) Math.floor(pos.getX()+xOff)+1) {
+							xCollision++;
+							xCorrection = (float) Math.floor(pos.getX()+xOff)+1 - (1-playerSize);
+						}
 		
-		//Horizontal collisions using a 2*2
-		for (int i = 0; i < 4; i++) {
-			float xOff = 0.0f;
-			float zOff = 0.0f;
-			
-			if (i == 1 || i == 3) {
-				xOff += 1;
-//				xOff += playerSize;
-			}if (i >= 2) {
-				zOff += 1;
-//				zOff += playerSize;
-			}
-			
-			int chunkX = (int) Math.floor(Math.floor(pos.getX()+xOff)/16.0);
-			int chunkZ = (int) Math.floor(Math.floor(pos.getZ()+zOff)/16.0);
-			
-//			ArrayList<ArrayList<ArrayList<Integer>>> current = worldGen.getChunk(chunkX, chunkZ);
-			//TODO Causes random out of bounds errors even after checking that it would be in bounds
-			if ((worldGen.getBlock(pos.getX()+xOff, (float) Math.floor(pos.getY()-1-yChange), pos.getZ()+zOff, chunkX, chunkZ) != 0 && worldGen.getBlock(pos.getX()+xOff, (float) Math.floor(pos.getY()-1-yChange), pos.getZ()+zOff, chunkX, chunkZ) != -1)
-					|| (worldGen.getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-yChange), pos.getZ()+zOff, chunkX, chunkZ) != 0 && worldGen.getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-yChange), pos.getZ()+zOff, chunkX, chunkZ) != -1)
-					|| (worldGen.getBlock(pos.getX()+xOff, Math.round(pos.getY()-0.5-yChange), pos.getZ()+zOff, chunkX, chunkZ) != 0 && worldGen.getBlock(pos.getX()+xOff, Math.round(pos.getY()-0.5-yChange), pos.getZ()+zOff, chunkX, chunkZ) != -1)) {
-				//Check if there is a collision
-				if ((pos.getX()-(1-playerSize) > Math.floor(pos.getX()+xOff)-1 && pos.getX()+(1-playerSize) < Math.floor(pos.getX()+xOff)+1) && (pos.getZ()-(1-playerSize) > Math.floor(pos.getZ()+zOff)-1 && pos.getZ()+(1-playerSize) < Math.floor(pos.getZ()+zOff)+1)) {
-					if (pos.getX()-(1-playerSize) > Math.floor(pos.getX()+xOff)-1 && roundFloat(pos.getX()-xChange-(1-playerSize)) <= (float) Math.floor(pos.getX()+xOff)-1) {
-						xCollision++;
-						xCorrection = (float) Math.floor(pos.getX()+xOff)-1 + (1-playerSize);
-					}
-					
-					if (pos.getX()+(1-playerSize) < Math.floor(pos.getX()+xOff)+1 && roundFloat(pos.getX()-xChange+(1-playerSize)) >= (float) Math.floor(pos.getX()+xOff)+1) {
-						xCollision++;
-						xCorrection = (float) Math.floor(pos.getX()+xOff)+1 - (1-playerSize);
-					}
-	
-					if (pos.getZ()-(1-playerSize) > Math.floor(pos.getZ()+zOff)-1 && roundFloat(pos.getZ()-zChange-(1-playerSize)) <= (float) Math.floor(pos.getZ()+zOff)-1) {
-						zCollision++;
-						zCorrection = (float) Math.floor(pos.getZ()+zOff)-1 + (1-playerSize);
-					}
-					
-					if (pos.getZ()+(1-playerSize) < Math.floor(pos.getZ()+zOff)+1 && roundFloat(pos.getZ()-zChange+(1-playerSize)) >= (float) Math.floor(pos.getZ()+zOff)+1) {
-						zCollision++;
-						zCorrection = (float) Math.floor(pos.getZ()+zOff)+1 - (1-playerSize);
+						if (pos.getZ()-(1-playerSize) > Math.floor(pos.getZ()+zOff)-1 && roundFloat(pos.getZ()-zChange-(1-playerSize)) <= (float) Math.floor(pos.getZ()+zOff)-1) {
+							zCollision++;
+							zCorrection = (float) Math.floor(pos.getZ()+zOff)-1 + (1-playerSize);
+						}
+						
+						if (pos.getZ()+(1-playerSize) < Math.floor(pos.getZ()+zOff)+1 && roundFloat(pos.getZ()-zChange+(1-playerSize)) >= (float) Math.floor(pos.getZ()+zOff)+1) {
+							zCollision++;
+							zCorrection = (float) Math.floor(pos.getZ()+zOff)+1 - (1-playerSize);
+						}
 					}
 				}
 			}
+			
+			if (zCollision > xCollision) {
+				pos.setZ(zCorrection);
+				velocity.setZ(0f);
+			}else if (xCollision > zCollision) {
+				pos.setX(xCorrection);
+				velocity.setX(0f);
+			}else if (zCollision != 0 && xCollision != 0){
+				pos.setX(xCorrection);
+				pos.setZ(zCorrection);
+				velocity.setX(0f);
+				velocity.setZ(0f);
+			}
 		}
 		
-		if (zCollision > xCollision) {
-			pos.setZ(zCorrection);
-			velocity.setZ(0f);
-		}else if (xCollision > zCollision) {
-			pos.setX(xCorrection);
-			velocity.setX(0f);
-		}else if (zCollision != 0 && xCollision != 0){
-			pos.setX(xCorrection);
-			pos.setZ(zCorrection);
-			velocity.setX(0f);
-			velocity.setZ(0f);
-		}
-		
-		//TODO Fix jumping while on a wall from teleporting you to the top of the block
 		//Collision with the floor
 		for (int i = 0; i < 4; i++) {
 			float xOff = 0.0f;
@@ -431,7 +535,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 	}
 	
 	/**
-	 * Function to break blocks, currently breaks them at the moment
+	 * Function to break blocks
 	 * @param window Window to break the block in
 	 */
 	private void breakBlock(WindowUpdates window) {
@@ -457,7 +561,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			}else if (zVec > axesOff) {
 				cz = (float) Math.floor(cz);
 			}else {
-//				System.out.println("Z round "+cz+" "+Math.round(cz));
+				System.out.println("Z round "+cz+" "+Math.round(cz));
 				cz = (float) Math.round(cz);
 			}
 			
@@ -466,7 +570,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			}else if (xVec > axesOff) {
 				cx = (float) Math.floor(cx);
 			}else {
-//				System.out.println("X round "+cx+" "+Math.round(cx));
+				System.out.println("X round "+cx+" "+Math.round(cx));
 				cx = (float) Math.round(cx);
 			}
 			if (yVec < -axesOff) {
@@ -474,7 +578,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			}else if (yVec > axesOff) {
 				cy = (float) Math.floor(cy);
 			}else {
-//				System.out.println("Y round "+yVec+" "+Math.round(cy));
+				System.out.println("Y round "+yVec+" "+Math.round(cy));
 				cy = (float) Math.round(cy);
 			}
 			
@@ -643,7 +747,9 @@ public class Player implements KeyListener, MouseListener, Protocol{
 					while (current.get(relX).get(relZ).size() <= Math.floor(cy)) {
 						current.get(relX).get(relZ).add(0);
 					}
-					current.get(relX).get(relZ).set((int) Math.floor(cy), 1);
+//					current.get(relX).get(relZ).set((int) Math.floor(cy), 1);
+					current.get(relX).get(relZ).set((int) Math.floor(cy), 5);
+					
 					if (Game.MULTIPLAYER) {
 						out.println(BLOCK_UPDATE+" "+(int) cx+" "+(int) cy+" "+(int) cz+" 1");
 					}

@@ -26,7 +26,7 @@ public class WorldGen implements Runnable {
 	/**
 	 * Holds the data for all the blocks in world
 	 */
-	volatile ArrayList<ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>> world;
+	HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Integer>>>> world;
 	
 	//TODO Make a setting variable
 	public static int renderDist = 9;
@@ -35,11 +35,6 @@ public class WorldGen implements Runnable {
 	 * Stores how many chunks to generate the terrian of the world out to
 	 */
 	public static int genDist = 14;
-	
-	/**
-	 * Offsets for the chunks so that we can have "negative" chunk coordinates
-	 */
-	private int xOffset = 0, zOffset = 0;
 	
 	/**
 	 * Keeps the world generation running while the game is running
@@ -95,7 +90,6 @@ public class WorldGen implements Runnable {
 		this.window = window;
 		worldIO = new WorldIO();
 		running = true;
-		world = new ArrayList<ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>>();
 		visibleChunks = new HashSet<>();
 		editedChunks = new HashSet<>();
 		
@@ -107,6 +101,7 @@ public class WorldGen implements Runnable {
 		genGradient(1000, seed);
 		thread = new Thread(this);
 		thread.start();
+		world = new HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Integer>>>>();
 	}
 	
 	/**
@@ -130,10 +125,10 @@ public class WorldGen implements Runnable {
 	 * @return The chunk in the world at the desired position, null if it doesn't exist
 	 */
 	public ArrayList<ArrayList<ArrayList<Integer>>> getChunk(int x, int z){
-		if (x+xOffset < 0 || z+zOffset < 0 || world.size() <= x+xOffset || world.get(x+xOffset).size() <= z+zOffset) {
-			return null;
-		}
-		return world.get(x + xOffset).get(z + zOffset);
+//		System.out.println(chunks.containsKey(new Coord2D<Integer>(x, z)));
+//		System.out.println("Get "+x+" "+z);
+//		return world.get(x + xOffset).get(z + zOffset);
+		return world.get(new Coord2D<Integer>(x, z));
 	}
 	
 	/**
@@ -239,62 +234,40 @@ public class WorldGen implements Runnable {
 			int playerChunkZ = (int) (z/16);
 			
 			for (int currentX = -genDist; currentX < genDist; currentX++) {
-				while (currentX + playerChunkX + xOffset < 0) {
-					xOffset++;
-					world.add(0, new ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>());
-					//TODO Change so it buffers the beginning chunks at least
-					for (int i = 0; i < zOffset; i++) {
-						world.get(0).add(new ArrayList<ArrayList<ArrayList<Integer>>>());
-					}
-				}
-				while (currentX + playerChunkX + xOffset >= world.size()) {
-					world.add(new ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>());
-					for (int i = 0; i < zOffset; i++) {
-						world.get(world.size()-1).add(new ArrayList<ArrayList<ArrayList<Integer>>>());
-					}
-				}
 				for (int currentZ = -genDist; currentZ < genDist; currentZ++) {
-					while (currentZ + playerChunkZ + zOffset < 0) {
-						zOffset++;
-						for (ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>> xStrip: world) {
-							xStrip.add(0, new ArrayList<ArrayList<ArrayList<Integer>>>());
-						}
-					}
-					while (currentZ + playerChunkZ + zOffset >= world.get(currentX + playerChunkX + xOffset).size()) {
-						for (ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>> xStrip: world) {
-							xStrip.add(new ArrayList<ArrayList<ArrayList<Integer>>>());
-						}
-					}
-					
 					if (!visibleChunks.contains(new Coord2D<Integer>(currentX+playerChunkX, currentZ+playerChunkZ))) {
-						
 						
 						//If the chunk has been loaded from file, use that instead of regenerating the chunk
 						if (saved != null && saved.containsKey(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ))) {
-							world.get(currentX + playerChunkX + xOffset).set(currentZ + playerChunkZ + zOffset, saved.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)));
+							world.put(new Coord2D<Integer>(currentX + playerChunkX,currentZ + playerChunkZ), saved.get(new Coord2D<Integer>(currentX + playerChunkX,currentZ + playerChunkZ)));
 							saved.remove(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ));
 							editedChunks.add(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ));
-						}else if (world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).size() == 0) {
+						}
+
+						else if (!world.containsKey(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ))){
+							ArrayList<ArrayList<ArrayList<Integer>>> chunk = new ArrayList<ArrayList<ArrayList<Integer>>>();
+							world.put(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ), chunk);
 						
 							for (int cubeX = 0; cubeX < 16; cubeX++) {
-								world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).add(new ArrayList<ArrayList<Integer>>());
+								world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).add(new ArrayList<ArrayList<Integer>>());
 								for (int cubeZ = 0; cubeZ < 16; cubeZ++) {
-									world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).add(new ArrayList<Integer>());
+									world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).add(new ArrayList<Integer>());
 								
 									int cubeXPos = 16*(currentX + playerChunkX)+cubeX;
 									int cubeZPos = 16*(currentZ + playerChunkZ)+cubeZ;
 									
-									world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(4);
+									world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add(4);
 									
 //									for (int i = 0; i < (int) Math.sqrt(3000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2)); i++) {
 //									for (int i = 0; i < (int) 30+(15*(Math.cos(0.1*cubeXPos)))+(15*(Math.sin(0.1*cubeZPos))); i++) {
 									for (int i = 0; i < (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32)-5; i++) {
-										world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(2);
+										world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add(2);
 									}
 //									for (int i = (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32)-5; i < (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32); i++) {
 									for (int i = 0; i < (int) Math.sqrt(3000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2))-5; i++) {
-										world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(3);
-									}world.get(currentX + playerChunkX + xOffset).get(currentZ + playerChunkZ + zOffset).get(cubeX).get(cubeZ).add(1);
+										world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add(3);
+									}
+									world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add(1);
 								}
 							}
 						}else if (Math.abs(currentX) < renderDist && Math.abs(currentZ) < renderDist) {
