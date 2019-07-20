@@ -161,6 +161,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 		
 		acceleration.setX(0f);
 		acceleration.setY(-0.01f);
+//		acceleration.setY(0f);
 		acceleration.setZ(0f);
 		
 		//Foward backward movement
@@ -256,26 +257,30 @@ public class Player implements KeyListener, MouseListener, Protocol{
 	}
 	
 	public void currentBlockVisual(GL2 gl) {
-		gl.glColor3f(0.0f, 0.0f, 0.0f);
-//		gl.glBegin(GL2.GL_POLYGON);
-		gl.glBegin(GL2.GL_LINES);
-		gl.glLineWidth(3f);
-		float axesOff = (float) Math.PI/12.0f;
+//		float axesOff = (float) Math.PI/12.0f;
+		float axesOff = 0;
 		
-		float yVec = (float) -Math.sin(Math.toRadians(yRot));
-		float xzComponent = (float) Math.cos(Math.toRadians(yRot));
+//		float yVec = (float) -Math.sin(Math.toRadians(yRot));
+//		float xzComponent = (float) Math.cos(Math.toRadians(yRot));
+//		
+//		float xVec = (float) Math.sin(Math.toRadians(xRot)) * xzComponent;
+//		float zVec = (float) -Math.cos(Math.toRadians(xRot)) * xzComponent;
 		
-		float xVec = (float) Math.sin(Math.toRadians(xRot)) * xzComponent;
-		float zVec = (float) -Math.cos(Math.toRadians(xRot)) * xzComponent;
+		double yVec = -Math.sin(Math.toRadians(yRot));
+		double xzComponent = Math.cos(Math.toRadians(yRot));
+		
+		double xVec = Math.sin(Math.toRadians(xRot)) * xzComponent;
+		double zVec = -Math.cos(Math.toRadians(xRot)) * xzComponent;
 		
 		float i = 0;
 		
 		//Current x, y, z coords of the ray
 		float cx, cy, cz;
+		
 		while (i < 50) {
-			cx = pos.getX() + i*xVec;
-			cy = pos.getY() + i*yVec;
-			cz = pos.getZ() + i*zVec;
+			cx = pos.getX() + (float) (i*xVec);
+			cy = pos.getY() + (float) (i*yVec) - 0f;
+			cz = pos.getZ() + (float) (i*zVec);
 			
 			if (zVec < -axesOff) {
 				cz = (float) Math.ceil(cz);
@@ -303,7 +308,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			int chunkX = (int) Math.floor(cx/16.0);
 			int chunkZ = (int) Math.floor(cz/16.0);
 			
-			ArrayList<ArrayList<ArrayList<Integer>>> current = worldGen.getChunk(chunkX, chunkZ);
+			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.getChunk(chunkX, chunkZ);
 			if (current != null) {
 				int relX = (int) cx % 16;
 				int relZ = (int) cz % 16;
@@ -321,23 +326,47 @@ public class Player implements KeyListener, MouseListener, Protocol{
 				//TODO Fix random out of bounds errors
 				try {
 					if (current.get(relX).get(relZ).size() > Math.floor(cy) && cy > 0 && current.get(relX).get(relZ).get((int) Math.floor(cy)) != 0){
+						gl.glBegin(GL2.GL_LINES);
+						gl.glColor3f(0.0f, 0.0f, 0.0f);
+						gl.glVertex3f(pos.getX(), pos.getY()+1, pos.getZ());
+						gl.glVertex3d(pos.getX() + (i*xVec), pos.getY() + (i*yVec) - 0f, pos.getZ()+(i*zVec));
 						
+						gl.glColor3f(1f, 1f, 1f);
+						gl.glVertex3f(pos.getX(), pos.getY()-1, pos.getZ());
+						gl.glVertex3f(pos.getX() + (float) (i*xVec), pos.getY() + (float) (i*yVec) - 0f, pos.getZ()+(float) (i*zVec));
+						
+//						gl.glVertex3f(pos.getX(), pos.getY(), pos.getZ()+1);
+//						gl.glVertex3f(pos.getX() + (float) (i*xVec), pos.getY() + (float) (i*yVec), pos.getZ()+(float) (i*zVec));
+//						gl.glVertex3f(pos.getX(), pos.getY(), pos.getZ()-1);
+//						gl.glVertex3f(pos.getX() + (float) (i*xVec), pos.getY() + (float) (i*yVec), pos.getZ()+(float) (i*zVec));
+						gl.glEnd();
+						
+						gl.glColor3f(0.0f, 0.0f, 0.0f);
+						gl.glBegin(GL2.GL_LINE_LOOP);
+						gl.glLineWidth(3f);
 						for (int f = 0; f < verts.length; f++) {
-//						gl.glVertex3fv(Cube.verts[f], 0);
+							
+							
+//							gl.glBegin(GL2.GL_POLYGON);
+//							gl.glBegin(GL2.GL_LINES);
+//							gl.glVertex3fv(Cube.verts[f], 0);
 							gl.glVertex3f(verts[f][0]+(int) cx, verts[f][1]+((float) Math.floor(cy)), verts[f][2]+(int) cz);
+
+							
 //						for (int p = 0; p < 3; p++) {
 //							gl.glVertex
 //						}
 						}
-						break;
+						gl.glEnd();
+						return;
 					}
 				}catch(Exception e) {
 					System.out.println("Caught random out of bounds");
 				}
 			}
-			i += 0.004f;
-		}
-		gl.glEnd();
+//			i += 0.004f;
+			i += 0.1f;
+		}gl.glEnd();
 	}
 	
 	public void update(String message, WindowUpdates window) {
@@ -347,7 +376,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			int x = Integer.parseInt(command[1]);
 			int y = Integer.parseInt(command[2]);
 			int z = Integer.parseInt(command[3]);
-			int blockID = Integer.parseInt(command[4]);
+			short blockID = Short.parseShort(command[4]);
 			int chunkX = (int) Math.floor(x/16.0);
 			int chunkZ = (int) Math.floor(z/16.0);
 			
@@ -374,7 +403,6 @@ public class Player implements KeyListener, MouseListener, Protocol{
 //				System.out.println("Error updating block "+x+" "+y+" "+z);
 //			}
 			worldGen.placeBlock(x, y, z, chunkX, chunkZ, blockID);
-			window.getChunk(chunkX, chunkZ).update(worldGen);
 			
 			break;
 		}
@@ -561,7 +589,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			}else if (zVec > axesOff) {
 				cz = (float) Math.floor(cz);
 			}else {
-				System.out.println("Z round "+cz+" "+Math.round(cz));
+//				System.out.println("Z round "+cz+" "+Math.round(cz));
 				cz = (float) Math.round(cz);
 			}
 			
@@ -570,7 +598,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			}else if (xVec > axesOff) {
 				cx = (float) Math.floor(cx);
 			}else {
-				System.out.println("X round "+cx+" "+Math.round(cx));
+//				System.out.println("X round "+cx+" "+Math.round(cx));
 				cx = (float) Math.round(cx);
 			}
 			if (yVec < -axesOff) {
@@ -578,14 +606,14 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			}else if (yVec > axesOff) {
 				cy = (float) Math.floor(cy);
 			}else {
-				System.out.println("Y round "+yVec+" "+Math.round(cy));
+//				System.out.println("Y round "+yVec+" "+Math.round(cy));
 				cy = (float) Math.round(cy);
 			}
 			
 			int chunkX = (int) Math.floor(cx/16.0);
 			int chunkZ = (int) Math.floor(cz/16.0);
 			
-			ArrayList<ArrayList<ArrayList<Integer>>> current = worldGen.getChunk(chunkX, chunkZ);
+			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.getChunk(chunkX, chunkZ);
 			if (current != null) {
 				int relX = (int) cx % 16;
 				int relZ = (int) cz % 16;
@@ -602,22 +630,22 @@ public class Player implements KeyListener, MouseListener, Protocol{
 				}
 				
 				if (current.get(relX).get(relZ).size() > Math.floor(cy) && cy > 0 && current.get(relX).get(relZ).get((int) Math.floor(cy)) != 0){
-					current.get(relX).get(relZ).set((int) Math.floor(cy), 0);
+					current.get(relX).get(relZ).set((int) Math.floor(cy), (short) 0);
 					if (Game.MULTIPLAYER) {
 						out.println(BLOCK_UPDATE+" "+(int) cx+" "+(int) cy+" "+(int) cz+" 0");
 					}
 					worldGen.editedChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
 					try {
-						window.getChunk(chunkX, chunkZ).update(worldGen);
+						window.getChunk(chunkX, chunkZ).load(worldGen);
 						//Updating adjacent chunks if neccessary
 						if ((int) Math.floor(relX) == 15) {
-							window.getChunk(chunkX+1, chunkZ).update(worldGen);
+							window.getChunk(chunkX+1, chunkZ).load(worldGen);
 						}if ((int) Math.floor(relZ) == 15) {
-							window.getChunk(chunkX, chunkZ+1).update(worldGen);
+							window.getChunk(chunkX, chunkZ+1).load(worldGen);
 						}if ((int) Math.floor(relX) == 0) {
-							window.getChunk(chunkX-1, chunkZ).update(worldGen);
+							window.getChunk(chunkX-1, chunkZ).load(worldGen);
 						}if ((int) Math.floor(relZ) == 0) {
-							window.getChunk(chunkX, chunkZ-1).update(worldGen);
+							window.getChunk(chunkX, chunkZ-1).load(worldGen);
 						}
 					}catch(Exception e) {
 						System.out.println("Placed block out of viewing range");
@@ -680,7 +708,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			int chunkX = (int) Math.floor(cx/16.0);
 			int chunkZ = (int) Math.floor(cz/16.0);
 			
-			ArrayList<ArrayList<ArrayList<Integer>>> current = worldGen.getChunk(chunkX, chunkZ);
+			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.getChunk(chunkX, chunkZ);
 			if (current != null) {
 				int relX = (int) cx % 16;
 				int relZ = (int) cz % 16;
@@ -745,26 +773,28 @@ public class Player implements KeyListener, MouseListener, Protocol{
 					
 					current = worldGen.getChunk(chunkX, chunkZ);
 					while (current.get(relX).get(relZ).size() <= Math.floor(cy)) {
-						current.get(relX).get(relZ).add(0);
+						current.get(relX).get(relZ).add((short) 0);
 					}
 //					current.get(relX).get(relZ).set((int) Math.floor(cy), 1);
-					current.get(relX).get(relZ).set((int) Math.floor(cy), 5);
+					current.get(relX).get(relZ).set((int) Math.floor(cy), (short) 6);
 					
+
+					window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>((int) cx,(int) cy,(int) cz));
 					if (Game.MULTIPLAYER) {
 						out.println(BLOCK_UPDATE+" "+(int) cx+" "+(int) cy+" "+(int) cz+" 1");
 					}
 					worldGen.editedChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
 					try {
-						window.getChunk(chunkX, chunkZ).update(worldGen);
+						window.getChunk(chunkX, chunkZ).load(worldGen);
 						//Updating adjacent chunks if neccessary
 						if ((int) Math.floor(relX) == 15) {
-							window.getChunk(chunkX+1, chunkZ).update(worldGen);
+							window.getChunk(chunkX+1, chunkZ).load(worldGen);
 						}if ((int) Math.floor(relZ) == 15) {
-							window.getChunk(chunkX, chunkZ+1).update(worldGen);
+							window.getChunk(chunkX, chunkZ+1).load(worldGen);
 						}if ((int) Math.floor(relX) == 0) {
-							window.getChunk(chunkX-1, chunkZ).update(worldGen);
+							window.getChunk(chunkX-1, chunkZ).load(worldGen);
 						}if ((int) Math.floor(relZ) == 0) {
-							window.getChunk(chunkX, chunkZ-1).update(worldGen);
+							window.getChunk(chunkX, chunkZ-1).load(worldGen);
 						}
 					}catch(Exception e) {
 						System.out.println("Placed block out of viewing range");

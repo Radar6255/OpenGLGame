@@ -49,6 +49,10 @@ public class WindowUpdates implements GLEventListener {
 	 */
 	private volatile boolean adding = false;
 	
+	
+	private long lastTick = 0;
+	
+	
 	/**
 	 * Set to true when clearing the queue of chunks to be rendered
 	 */
@@ -66,6 +70,8 @@ public class WindowUpdates implements GLEventListener {
 	
 	private int seed = -1;
 	
+	long renderTimeMax = 0;
+	
 	/**
 	 * Creates a controller for the windows updates
 	 * @param player The player this window updater is for
@@ -82,6 +88,19 @@ public class WindowUpdates implements GLEventListener {
 	@Override
 	public void display(GLAutoDrawable drawable) {
 		long start = System.currentTimeMillis();
+//		Chunk[] tChunks = chunks.values().toArray(new Chunk[chunks.values().size()]);
+		if (start - lastTick > 100) {
+//			new Thread(() -> {
+//				for (Chunk chunk: tChunks) {
+//					chunk.update(gen, this);
+//				}
+//			}).start();
+			for (Chunk chunk: chunks.values()) {
+				chunk.update(gen, this);
+			}
+			lastTick = System.currentTimeMillis();
+		}
+		
 		//Drawing background
 		GL2 gl = drawable.getGL().getGL2();
 	    gl.glClear(GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT );
@@ -90,7 +109,6 @@ public class WindowUpdates implements GLEventListener {
 	    gl.glLoadIdentity();
 		
 	    player.tick(this);
-
 
 		gl.glLightModelfv(GL2.GL_LIGHT_MODEL_LOCAL_VIEWER, new float[] {1.0f}, 0);
 		
@@ -110,7 +128,6 @@ public class WindowUpdates implements GLEventListener {
 		
 		//Moving the world around the players coordinates
 		gl.glTranslatef(-player.getPos().getX(), -player.getPos().getY(), -player.getPos().getZ());
-		
 		
 		//Drawing all of the visible chunks
 		gl.glEnable(GL2.GL_TEXTURE_2D);
@@ -138,7 +155,7 @@ public class WindowUpdates implements GLEventListener {
 		gl.glDisable(GL2.GL_TEXTURE_2D);
 		gl.glDisable(GL2.GL_LIGHTING);
 		gl.glDisable(GL2.GL_LIGHT0);
-		player.currentBlockVisual(gl);
+//		player.currentBlockVisual(gl);
 		
 //		gl.glPushMatrix();
 //		gl.glLoadIdentity();
@@ -152,33 +169,40 @@ public class WindowUpdates implements GLEventListener {
 //		}
 		
 		//Loads all chunks available to load from the world generation thread
-		if (!adding && !chunkQueue.isEmpty()) {
-			clearing = true;
-			for (Chunk temp: chunkQueue) {
-				chunks.put(new Coord2D<Integer>(temp.getX(), temp.getZ()), temp);
-			}
-			chunkQueue.clear();
-			clearing = false;
-		}
-		//Slowing down chunk loading so that it doesnt fps drop when loading chunks
 //		if (!adding && !chunkQueue.isEmpty()) {
 //			clearing = true;
-//			Chunk temp = chunkQueue.pop();
-//			chunks.put(new Coord2D<Integer>(temp.getX(), temp.getZ()), temp);
+//			for (Chunk temp: chunkQueue) {
+//				chunks.put(new Coord2D<Integer>(temp.getX(), temp.getZ()), temp);
+//			}
+//			chunkQueue.clear();
 //			clearing = false;
 //		}
+		//Slowing down chunk loading so that it doesnt fps drop when loading chunks
+		if (!adding && !chunkQueue.isEmpty()) {
+			clearing = true;
+			Chunk temp = chunkQueue.pop();
+			chunks.put(new Coord2D<Integer>(temp.getX(), temp.getZ()), temp);
+			clearing = false;
+		}
 		
 		for (Chunk chunk: chunks.values()) {
 			if (chunk.distance(player.getPos().getX(), player.getPos().getZ()) > VideoSettings.renderDistance) {
 				gen.removeChunk(chunk.getX(), chunk.getZ());
 				chunk.delete(gl);
 				chunks.remove(new Coord2D<Integer>(chunk.getX(),chunk.getZ()));
+				chunk = null;
 				break;
 			}
 		}
 		
 		if (System.currentTimeMillis()-start != 0) {
-			window.changeTitle("Render time: "+(System.currentTimeMillis()-start)+"ms"+" FPS: "+1000/(System.currentTimeMillis()-start));
+			long temp = System.currentTimeMillis()-start;
+			if (temp > renderTimeMax) {
+				renderTimeMax = temp;
+			}
+			window.changeTitle("Render time: "+temp+"ms"+" FPS: "+1000/(System.currentTimeMillis()-start)+" Render time max: "+renderTimeMax);
+			
+			
 		}
 	}
 

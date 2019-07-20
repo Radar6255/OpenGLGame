@@ -21,20 +21,23 @@ import com.radar.common.WorldIO;
  * To have them be rendered there
  */
 public class WorldGen implements Runnable {
-	//TODO Consider changing into quadrants
-	
 	/**
 	 * Holds the data for all the blocks in world
 	 */
-	HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Integer>>>> world;
+	HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>> world;
+	
+	/**
+	 * Holds height of all liquids in the world
+	 */
+	public HashMap<Coord<Integer>,Float> liquids;
 	
 	//TODO Make a setting variable
-	public static int renderDist = 9;
+	public static byte renderDist = 9;
 	
 	/**
 	 * Stores how many chunks to generate the terrian of the world out to
 	 */
-	public static int genDist = 14;
+	public static byte genDist = 14;
 	
 	/**
 	 * Keeps the world generation running while the game is running
@@ -73,7 +76,7 @@ public class WorldGen implements Runnable {
 //	private int[][] faceTextures = new int[][] {{1, 1, 1, 1, 3, 2}, {4, 4, 4, 4, 4, 4}, {2, 2, 2, 2, 2, 2}};
 //	private int[][] faceTextures = new int[][] {{5, 6, 7, 8, 9, 10}, {4, 4, 4, 4, 4, 4}};
 	
-	private HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Integer>>>> saved;
+	private HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>> saved;
 	
 	private float[][][] gradient;
 	
@@ -101,7 +104,8 @@ public class WorldGen implements Runnable {
 		genGradient(1000, seed);
 		thread = new Thread(this);
 		thread.start();
-		world = new HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Integer>>>>();
+		world = new HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>>();
+		liquids = new HashMap<>();
 	}
 	
 	/**
@@ -124,7 +128,7 @@ public class WorldGen implements Runnable {
 	 * @param z The z position of the chunk to get
 	 * @return The chunk in the world at the desired position, null if it doesn't exist
 	 */
-	public ArrayList<ArrayList<ArrayList<Integer>>> getChunk(int x, int z){
+	public ArrayList<ArrayList<ArrayList<Short>>> getChunk(int x, int z){
 //		System.out.println(chunks.containsKey(new Coord2D<Integer>(x, z)));
 //		System.out.println("Get "+x+" "+z);
 //		return world.get(x + xOffset).get(z + zOffset);
@@ -161,24 +165,24 @@ public class WorldGen implements Runnable {
 	 * @return The blockID at that position
 	 */
 	public int getBlock(float x, float y, float z, int chunkX, int chunkZ) {
-		ArrayList<ArrayList<ArrayList<Integer>>> current = getChunk(chunkX, chunkZ);
+		ArrayList<ArrayList<ArrayList<Short>>> current = getChunk(chunkX, chunkZ);
 		
 		if (current == null) {
 			return -1;
 		}
 		
-		int relX;
-		int relZ;
+		byte relX;
+		byte relZ;
 		
 		if (x < 0) {
-			relX = (int) (15 - (Math.abs(1+Math.floor(x)) % 16));
+			relX = (byte) (15 - (Math.abs(1+Math.floor(x)) % 16));
 		}else {
-			relX = (int) (Math.floor(x) % 16);
+			relX = (byte) (Math.floor(x) % 16);
 		}
 		if (z < 0) {
-			relZ = (int) (15 - (Math.abs(1+Math.floor(z)) % 16));
+			relZ = (byte) (15 - (Math.abs(1+Math.floor(z)) % 16));
 		}else {
-			relZ = (int) (Math.floor(z) % 16);
+			relZ = (byte) (Math.floor(z) % 16);
 		}
 		
 		if (current.get(relX).get(relZ).size() > Math.floor(y) && Math.floor(y) >= 0) {
@@ -196,8 +200,8 @@ public class WorldGen implements Runnable {
 	 * @param chunkZ The chunk the block is in z's position
 	 * @param blockID The blockID be placed at this position
 	 */
-	public void placeBlock(float x, float y, float z, int chunkX, int chunkZ, int blockID) {
-		ArrayList<ArrayList<ArrayList<Integer>>> current = getChunk(chunkX, chunkZ);
+	public void placeBlock(float x, float y, float z, int chunkX, int chunkZ, short blockID) {
+		ArrayList<ArrayList<ArrayList<Short>>> current = getChunk(chunkX, chunkZ);
 		
 		if (current == null) {
 			return;
@@ -245,29 +249,29 @@ public class WorldGen implements Runnable {
 						}
 
 						else if (!world.containsKey(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ))){
-							ArrayList<ArrayList<ArrayList<Integer>>> chunk = new ArrayList<ArrayList<ArrayList<Integer>>>();
+							ArrayList<ArrayList<ArrayList<Short>>> chunk = new ArrayList<ArrayList<ArrayList<Short>>>();
 							world.put(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ), chunk);
 						
 							for (int cubeX = 0; cubeX < 16; cubeX++) {
-								world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).add(new ArrayList<ArrayList<Integer>>());
+								world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).add(new ArrayList<ArrayList<Short>>());
 								for (int cubeZ = 0; cubeZ < 16; cubeZ++) {
-									world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).add(new ArrayList<Integer>());
+									world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).add(new ArrayList<Short>());
 								
 									int cubeXPos = 16*(currentX + playerChunkX)+cubeX;
 									int cubeZPos = 16*(currentZ + playerChunkZ)+cubeZ;
 									
-									world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add(4);
+									world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 4);
 									
 //									for (int i = 0; i < (int) Math.sqrt(3000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2)); i++) {
 //									for (int i = 0; i < (int) 30+(15*(Math.cos(0.1*cubeXPos)))+(15*(Math.sin(0.1*cubeZPos))); i++) {
 									for (int i = 0; i < (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32)-5; i++) {
-										world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add(2);
+										world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 2);
 									}
 //									for (int i = (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32)-5; i < (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32); i++) {
 									for (int i = 0; i < (int) Math.sqrt(3000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2))-5; i++) {
-										world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add(3);
+										world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 3);
 									}
-									world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add(1);
+									world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 1);
 								}
 							}
 						}else if (Math.abs(currentX) < renderDist && Math.abs(currentZ) < renderDist) {

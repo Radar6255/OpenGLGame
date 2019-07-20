@@ -2,10 +2,17 @@ package com.radar.client.world;
 
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.GL2;
+import com.radar.client.window.WindowUpdates;
+import com.radar.client.world.Block.Block;
+import com.radar.client.world.Block.Cube;
+import com.radar.client.world.Block.Fluid;
+import com.radar.client.world.Block.Updateable;
 
 /**
  * @author radar
@@ -16,12 +23,20 @@ public class Chunk {
 	/**
 	 * List of all cubes in this chunk
 	 */
-	private LinkedList<Cube> cubes;
+//	private LinkedList<Cube> cubes;
+	private HashMap<Coord<Integer>, Cube> cubes;
 	
 	/**
+	 * TODO Possibly remove, uses data that is only used like once, or delete not sure
 	 * List of the cubes with at least one visible face
 	 */
 	private LinkedList<Cube> visibleCubes;
+	
+	
+	private LinkedList<Updateable> blockUpdates;
+	
+	
+	public HashSet<Coord<Integer>> blocksToUpdate;
 	
 	/**
 	 * Used to do some buffer creation on this chunks first render call
@@ -63,10 +78,12 @@ public class Chunk {
 	 */
 	private int numFaces = 0;
 	
+	ArrayList<Integer> availableSpace;
+	
 	/**
 	 * Indicies of textures for each face
 	 */
-	private static int[][] faceTextures = new int[][] {{1, 1, 1, 1, 3, 2}, {4, 4, 4, 4, 4, 4}, {2, 2, 2, 2, 2, 2}, {5, 5, 5, 5, 5, 5}, {6, 6, 6, 6, 7, 7}};
+	private static short[][] faceTextures = new short[][] {{1, 1, 1, 1, 3, 2}, {4, 4, 4, 4, 4, 4}, {2, 2, 2, 2, 2, 2}, {5, 5, 5, 5, 5, 5}, {6, 6, 6, 6, 7, 7}, {11, 11, 11, 11, 11, 11}};
 	
 	/**
 	 * Creates a chunk at the specified x, z
@@ -77,12 +94,28 @@ public class Chunk {
 		this.x = x;
 		this.z = z;
 		
+		blockUpdates = new LinkedList<>();
+		blocksToUpdate = new HashSet<>();
+		availableSpace = new ArrayList<>();
+		
 		load(gen);
 	}
 	
-	public void update(WorldGen gen) {
-		load(gen);
-		update = true;
+	public void update(WorldGen gen, WindowUpdates window) {
+		boolean ran = false;
+		LinkedList<Updateable> tempUpdates = (LinkedList<Updateable>) blockUpdates.clone();
+		for (Updateable cube: tempUpdates) {
+			cube.update(window);
+			ran = true;
+		}
+		blockUpdates.clear();
+		//Clears old blocks and replaces them with new ones
+		//Allows blocks to be removed/added visually
+		if (ran) {
+			load(gen);
+			update = true;
+		}
+		
 	}
 
 	/**
@@ -90,30 +123,73 @@ public class Chunk {
 	 * before first render call, also called on block updates
 	 */
 	public void load(WorldGen gen) {
-		cubes = new LinkedList<>();
+		long start = System.currentTimeMillis();
+		//TODO Find a more precise way of finding number of blocks in a chunk or get a better guess
+		cubes = new HashMap<>(100);
 		visibleCubes = new LinkedList<>();
 		
-		ArrayList<ArrayList<ArrayList<Integer>>> chunk = gen.getChunk(x, z);
+		ArrayList<ArrayList<ArrayList<Short>>> chunk = gen.getChunk(x, z);
 		
 		for (int tx = 0; tx < 16; tx++) {
 			for (int tz = 0; tz < 16; tz++) {
 				for (int ty = 0; ty < chunk.get(tx).get(tz).size(); ty++) {
 					if (chunk.get(tx).get(tz).get(ty) != 0) {
-						addCube(new Cube(x*16 + tx, ty, z*16 + tz, 1, 1, 1, faceTextures[chunk.get(tx).get(tz).get(ty)-1], gen));
+						Coord<Integer> currentPos = new Coord<Integer>(x*16 + tx, ty, z*16 + tz);
+						if (chunk.get(tx).get(tz).get(ty) != 6) {
+							addCube(currentPos, new Block(x*16 + tx, ty, z*16 + tz, faceTextures[chunk.get(tx).get(tz).get(ty)-1], gen));
+						}else {
+							Fluid temp;
+							
+							try {
+								temp = new Fluid(x*16 + tx, ty, z*16 + tz, faceTextures[chunk.get(tx).get(tz).get(ty)-1], gen.liquids.get(new Coord<Integer>(x*16 + tx, ty, z*16 + tz)), gen);
+							}catch(Exception e){
+								temp = new Fluid(x*16 + tx, ty, z*16 + tz, faceTextures[chunk.get(tx).get(tz).get(ty)-1], 1, gen);
+							}
+							
+//							for (Coord<Integer> test: blocksToUpdate) {
+//								System.out.println(test.toString());
+//								System.out.println(test.equals(new Coord<Integer>(x*16 + tx, ty, z*16 + tz)));
+//							}
+							addCube(currentPos, temp);
+							if (blocksToUpdate.contains(new Coord<Integer>(x*16 + tx, ty, z*16 + tz))) {
+								blockUpdates.add(temp);
+							}
+						}
 					}
 				}
 			}
 		}
-		
+		blocksToUpdate.clear();
 		generateBufferArray();
+		update = true;
+		System.out.println("Load Chunk "+x+" "+z+" "+(System.currentTimeMillis()-start));
+	}
+	
+	public void load(int x, int y, int z, WorldGen gen) {
+		ArrayList<ArrayList<ArrayList<Short>>> chunk = gen.getChunk(x, z);
+		if (chunk.get(x).get(z).get(y) == 0) {
+			cubes.remove(new Coord<Integer>(x,y,z));
+		}else {
+			if (chunk.get(x).get(z).get(y) != 6) {
+				cubes.put(new Coord<Integer>(x,y,z), new Block(x,y,z, faceTextures[chunk.get(x).get(z).get(y)-1], gen));
+			}else {
+				Fluid temp;
+				try {
+					temp = new Fluid(x, y, z, faceTextures[chunk.get(x).get(z).get(y)-1], gen.liquids.get(new Coord<Integer>(x, y, z)), gen);
+				}catch(Exception e){
+					temp = new Fluid(x, y, z, faceTextures[chunk.get(x).get(z).get(y)-1], 1, gen);
+				}
+				addCube(new Coord<Integer>(x,y,z), temp);
+			}
+		}
 	}
 	
 	/**
 	 * A function to add a cube to this chunk
 	 * @param cube The cube to add to the chunk
 	 */
-	public void addCube(Cube cube) {
-		cubes.add(cube);
+	public void addCube(Coord<Integer> pos,Cube cube) {
+		cubes.put(pos, cube);
 	}
 	
 	/**
@@ -128,6 +204,7 @@ public class Chunk {
 			//Causes a little lag somethings may be able to be moved around
 			initBuffers(gl);
 			first = false;
+			update = false;
 		}else {
 			if (update) {
 				delete(gl);
@@ -143,7 +220,6 @@ public class Chunk {
 			
 			
 			gl.glDrawArrays(GL2.GL_QUADS, 0, numFaces * 4);
-			
 		}
 	}
 	
@@ -151,10 +227,14 @@ public class Chunk {
 	 * Used to generate the array to be buffered on the GPU on the first call
 	 */
 	private void generateBufferArray() {
-		for (Cube cube: cubes) {
+		Byte[] cubeFacesNums = new Byte[cubes.size()];
+		int t = 0;
+		for (Cube cube: cubes.values()) {
 			if (cube.isVisible()) {
 				visibleCubes.add(cube);
 				numFaces += cube.getNumVisibleFaces();
+				cubeFacesNums[t] = cube.getNumVisibleFaces();
+				t++;
 			}
 		}
 		
@@ -163,7 +243,7 @@ public class Chunk {
 		int pos = 0;
 		
 		for (Cube cube: visibleCubes) {
-			float[][] tempFaceVerts = cube.getFaceVerts();
+			float[][] tempFaceVerts = cube.getFaceVerts(pos);
 			float[][] tempNormals = cube.getNormals();
 			
 			for (int i = 0; i < tempFaceVerts.length; i++) {
@@ -178,7 +258,7 @@ public class Chunk {
 				normals[(pos*3)+2] = tempNormals[i][2];
 				pos++;
 			}
-		}
+		}visibleCubes.clear();
 	}
 	
 	/**
@@ -226,6 +306,8 @@ public class Chunk {
 	public void delete(GL2 gl) {
 		gl.glDeleteBuffers(1, vertexHandle, 0);
 		gl.glDeleteBuffers(1, normalHandle, 0);
+		cubes.clear();
+		visibleCubes.clear();
 	}
 
 

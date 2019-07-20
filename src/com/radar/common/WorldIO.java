@@ -41,7 +41,7 @@ public class WorldIO {
 	 * @param gen WorldGen object, used to get the chunks
 	 * @param genSeed The seed this world was generated with
 	 */
-	public void save(HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Integer>>>> world, HashSet<Coord2D<Integer>> editedChunks, WorldGen gen, int genSeed) {
+	public void save(HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>> world, HashSet<Coord2D<Integer>> editedChunks, WorldGen gen, int genSeed) {
 		System.out.println("Saving world...");
 		PrintStream out;
 		try {
@@ -54,7 +54,7 @@ public class WorldIO {
 		for (Coord2D<Integer> pos: editedChunks) {
 			out.println(pos.getX()+" "+pos.getZ());
 //			ArrayList<ArrayList<ArrayList<Integer>>> current = world.get(pos.getX()).get(pos.getZ());
-			ArrayList<ArrayList<ArrayList<Integer>>> current = gen.getChunk(pos.getX(), pos.getZ());
+			ArrayList<ArrayList<ArrayList<Short>>> current = gen.getChunk(pos.getX(), pos.getZ());
 			
 			for (int x = 0; x < 16; x++) {
 //				if (x != 0 && x != 15) {
@@ -66,7 +66,7 @@ public class WorldIO {
 //					if (z != 0 && z != 15) {
 //						out.print(", ");
 //					}
-					for (Integer i: current.get(x).get(z)) {
+					for (Short i: current.get(x).get(z)) {
 						out.print(i+",");
 					}
 //					out.print(";");
@@ -82,7 +82,7 @@ public class WorldIO {
 	 * @param filename The filename of the file to load
 	 * @return A hashmap with keys as chunk locations and values as the chunk data
 	 */
-	public HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Integer>>>> load(String filename){
+	public HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>> load(String filename){
 		System.out.println("Loading world from file: "+filename+"...");
 		Scanner in;
 		try {
@@ -92,7 +92,7 @@ public class WorldIO {
 			return null;
 		}
 		try {
-			HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Integer>>>> out = new HashMap<>();
+			HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>> out = new HashMap<>();
 			if (in.hasNextLine()) {
 				String seedS = in.nextLine();
 				this.seed = Integer.parseInt(seedS);
@@ -114,15 +114,15 @@ public class WorldIO {
 				
 				String chunkData = in.nextLine();
 				
-				ArrayList<ArrayList<ArrayList<Integer>>> creating = new ArrayList<ArrayList<ArrayList<Integer>>>();
+				ArrayList<ArrayList<ArrayList<Short>>> creating = new ArrayList<ArrayList<ArrayList<Short>>>();
 				String[] xArrays = chunkData.split(":");
 				for (int x = 1; x < 17; x++) {
-					creating.add(new ArrayList<ArrayList<Integer>>());
+					creating.add(new ArrayList<ArrayList<Short>>());
 					String[] zArrays = xArrays[x].split(";");
 					for (int z = 1; z < 17; z++) {
-						creating.get(x-1).add(new ArrayList<Integer>());
+						creating.get(x-1).add(new ArrayList<Short>());
 						for (String block: zArrays[z].split(",")) {
-							creating.get(x-1).get(z-1).add(Integer.parseInt(block));
+							creating.get(x-1).get(z-1).add(Short.parseShort(block));
 						}
 					}
 				}
