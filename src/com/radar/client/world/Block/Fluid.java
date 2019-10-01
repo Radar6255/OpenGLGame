@@ -22,6 +22,16 @@ public class Fluid extends Cube implements Updateable{
 	
 	private float height = 1;
 	
+	/**
+	 * Creates a fluid with specified height at x, y, z location
+	 * 
+	 * @param x The x position of the fluid
+	 * @param y The y position of the fluid
+	 * @param z The z position of the fluid
+	 * @param faceTextures The textures on all of the faces
+	 * @param height The height of the fluid at this point
+	 * @param gen The world generation, used to get chunk data for liquid spread
+	 */
 	public Fluid(int x, int y, int z, short[] faceTextures, float height, WorldGen gen) {
 		super(x, y, z, faceTextures, gen);
 		this.height = height;
@@ -34,6 +44,10 @@ public class Fluid extends Cube implements Updateable{
 		super.setVerticies(verts);
 	}
 	
+	/**
+	 * Sets the fluid's height
+	 * @param height The height to set it to
+	 */
 	public void changeHeight(float height) {
 		for (int p = 0; p < 24; p++) {
 			verts[p][1] = ((verts[p][1] + 0.5f)*height)-0.5f;
@@ -47,7 +61,6 @@ public class Fluid extends Cube implements Updateable{
 		
 		chunkX = (int) Math.floor(coords.getX()/16.0);
 		chunkZ = (int) Math.floor(coords.getZ()/16.0);
-		
 		
 		ArrayList<ArrayList<ArrayList<Short>>> currentChunk = gen.getChunk(chunkX, chunkZ);
 		ArrayList<ArrayList<ArrayList<Short>>> adjacentChunk;
@@ -68,6 +81,13 @@ public class Fluid extends Cube implements Updateable{
 		if (!gen.liquids.containsKey(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()))) {
 			gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()), height);
 		}
+		
+		if (coords.getY() > 1 && currentChunk.get(relX).get(relZ).get(coords.getY()-1) == 0) {
+			window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ()));
+			gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ()), height);
+			return;
+		}
+		
 		
 		if (relX-1 >= 0) {
 			if (currentChunk.get(relX-1).get(relZ).size() > coords.getY()) {
@@ -264,11 +284,11 @@ public class Fluid extends Cube implements Updateable{
 				}
 			}
 		}
-		if (coords.getY()+1 < currentChunk.get(relX).get(relZ).size()) {
-			if (currentChunk.get(relX).get(relZ).get(coords.getY()+1) == 0) {
-				spaceSpread++;
-			}
-		}
+//		if (coords.getY()+1 < currentChunk.get(relX).get(relZ).size()) {
+//			if (currentChunk.get(relX).get(relZ).get(coords.getY()+1) == 0) {
+//				spaceSpread++;
+//			}
+//		}
 		if (spreadHeight != height) {
 			window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()));
 		}

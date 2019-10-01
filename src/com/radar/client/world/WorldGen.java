@@ -32,12 +32,12 @@ public class WorldGen implements Runnable {
 	public HashMap<Coord<Integer>,Float> liquids;
 	
 	//TODO Make a setting variable
-	public static byte renderDist = 9;
+	public static byte renderDist = 7;
 	
 	/**
 	 * Stores how many chunks to generate the terrian of the world out to
 	 */
-	public static byte genDist = 14;
+	public static byte genDist = 12;
 	
 	/**
 	 * Keeps the world generation running while the game is running

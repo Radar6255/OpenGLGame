@@ -76,9 +76,6 @@ public abstract class Cube {
 	 * @param x X Position of the cube
 	 * @param y Y Position of the cube
 	 * @param z Z Position of the cube
-	 * @param w Width of the cube
-	 * @param h Height of the cube
-	 * @param d Depth of the cube
 	 */
 	public Cube(int x, int y, int z, short[] faceTextures, WorldGen gen) {
 		coords = new Coord<Integer>(x,y,z);
@@ -153,6 +150,22 @@ public abstract class Cube {
 				return true;
 			}
 		}return false;
+	}
+	
+	public void renderUpdate() {
+		boolean[] previousVisibleFaces = visibleFaces.clone();
+		byte[] out = new byte[6];
+		adjacentFaceCull();
+		//TODO Return whether faces are removed, added, changed, or remained the same
+		for (int i = 0; i < 6; i++) {
+			if (previousVisibleFaces[i] != visibleFaces[i]) {
+				if (visibleFaces[i] && !previousVisibleFaces[i]) {
+					
+				}
+			}else {
+				out[i] = 0;
+			}
+		}
 	}
 	
 	/**

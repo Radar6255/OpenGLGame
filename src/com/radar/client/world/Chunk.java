@@ -104,11 +104,12 @@ public class Chunk {
 	public void update(WorldGen gen, WindowUpdates window) {
 		boolean ran = false;
 		LinkedList<Updateable> tempUpdates = (LinkedList<Updateable>) blockUpdates.clone();
+		blockUpdates.clear();
 		for (Updateable cube: tempUpdates) {
 			cube.update(window);
 			ran = true;
 		}
-		blockUpdates.clear();
+		
 		//Clears old blocks and replaces them with new ones
 		//Allows blocks to be removed/added visually
 		if (ran) {
@@ -181,6 +182,26 @@ public class Chunk {
 				}
 				addCube(new Coord<Integer>(x,y,z), temp);
 			}
+		}
+		
+		if (cubes.containsKey(new Coord<Integer>(x+1,y,z))) {
+			Cube update = cubes.get(new Coord<Integer>(x+1,y,z));
+			
+		}if (cubes.containsKey(new Coord<Integer>(x-1,y,z))) {
+			Cube update = cubes.get(new Coord<Integer>(x-1,y,z));
+			
+		}if (cubes.containsKey(new Coord<Integer>(x,y+1,z))) {
+			Cube update = cubes.get(new Coord<Integer>(x,y+1,z));
+			
+		}if (cubes.containsKey(new Coord<Integer>(x,y-1,z))) {
+			Cube update = cubes.get(new Coord<Integer>(x,y-1,z));
+			
+		}if (cubes.containsKey(new Coord<Integer>(x,y,z+1))) {
+			Cube update = cubes.get(new Coord<Integer>(x,y,z+1));
+			
+		}if (cubes.containsKey(new Coord<Integer>(x,y,z-1))) {
+			Cube update = cubes.get(new Coord<Integer>(x,y,z-1));
+			
 		}
 	}
 	

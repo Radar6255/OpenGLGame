@@ -257,15 +257,6 @@ public class Player implements KeyListener, MouseListener, Protocol{
 	}
 	
 	public void currentBlockVisual(GL2 gl) {
-//		float axesOff = (float) Math.PI/12.0f;
-		float axesOff = 0;
-		
-//		float yVec = (float) -Math.sin(Math.toRadians(yRot));
-//		float xzComponent = (float) Math.cos(Math.toRadians(yRot));
-//		
-//		float xVec = (float) Math.sin(Math.toRadians(xRot)) * xzComponent;
-//		float zVec = (float) -Math.cos(Math.toRadians(xRot)) * xzComponent;
-		
 		double yVec = -Math.sin(Math.toRadians(yRot));
 		double xzComponent = Math.cos(Math.toRadians(yRot));
 		
@@ -282,28 +273,9 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			cy = pos.getY() + (float) (i*yVec) - 0f;
 			cz = pos.getZ() + (float) (i*zVec);
 			
-			if (zVec < -axesOff) {
-				cz = (float) Math.ceil(cz);
-			}else if (zVec > axesOff) {
-				cz = (float) Math.floor(cz);
-			}else {
-				cz = (float) Math.round(cz);
-			}
-			
-			if (xVec < -axesOff) {
-				cx = (float) Math.ceil(cx);
-			}else if (xVec > axesOff) {
-				cx = (float) Math.floor(cx);
-			}else {
-				cx = (float) Math.round(cx);
-			}
-			if (yVec < -axesOff) {
-				cy = (float) Math.ceil(cy);
-			}else if (yVec > axesOff) {
-				cy = (float) Math.floor(cy);
-			}else {
-				cy = (float) Math.round(cy);
-			}
+			cx = (float) Math.floor(cx - 0.5);
+			cy = (float) Math.floor(cy - 0.5);
+			cz = (float) Math.floor(cz - 0.5);
 			
 			int chunkX = (int) Math.floor(cx/16.0);
 			int chunkZ = (int) Math.floor(cz/16.0);
@@ -563,11 +535,46 @@ public class Player implements KeyListener, MouseListener, Protocol{
 	}
 	
 	/**
+	 * Function to find if a point is inside a block
+	 * @param x X position to check for collision
+	 * @param y Y position to check for collision
+	 * @param z Z position to check for collision
+	 * @param currentChunk The chunk to check for the collision
+	 * @return The point relative to the chunk where the collision happened or null if it didn't collide
+	 */
+	public Coord<Integer> blockCollision(float x, float y, float z, ArrayList<ArrayList<ArrayList<Short>>> currentChunk) {
+		float cx = (float) Math.ceil(x - 0.5);
+		float cy = (float) Math.ceil(y - 0.5);
+		float cz = (float) Math.ceil(z - 0.5);
+		
+		if (currentChunk != null) {
+			int relX = (int) cx % 16;
+			int relZ = (int) cz % 16;
+			
+			if (cx < 0) {
+				relX = (int) (15 - (Math.abs(1+cx) % 16));
+			}else {
+				relX = (int) cx % 16;
+			}
+			if (cz < 0) {
+				relZ = (int) (15 - (Math.abs(1+cz) % 16));
+			}else {
+				relZ = (int) cz % 16;
+			}
+			
+			if (currentChunk.get(relX).get(relZ).size() > Math.floor(cy) && cy > 0 && currentChunk.get(relX).get(relZ).get((int) Math.floor(cy)) != 0){
+				return new Coord<Integer>(relX, (int) Math.floor(cy), relZ);
+			}
+		}
+		
+		return null;
+	}
+	
+	/**
 	 * Function to break blocks
 	 * @param window Window to break the block in
 	 */
 	private void breakBlock(WindowUpdates window) {
-		float axesOff = (float) Math.PI/12.0f;
 		
 		float yVec = (float) -Math.sin(Math.toRadians(yRot));
 		float xzComponent = (float) Math.cos(Math.toRadians(yRot));
@@ -584,67 +591,29 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			cy = pos.getY() + i*yVec;
 			cz = pos.getZ() + i*zVec;
 			
-			if (zVec < -axesOff) {
-				cz = (float) Math.ceil(cz);
-			}else if (zVec > axesOff) {
-				cz = (float) Math.floor(cz);
-			}else {
-//				System.out.println("Z round "+cz+" "+Math.round(cz));
-				cz = (float) Math.round(cz);
-			}
-			
-			if (xVec < -axesOff) {
-				cx = (float) Math.ceil(cx);
-			}else if (xVec > axesOff) {
-				cx = (float) Math.floor(cx);
-			}else {
-//				System.out.println("X round "+cx+" "+Math.round(cx));
-				cx = (float) Math.round(cx);
-			}
-			if (yVec < -axesOff) {
-				cy = (float) Math.ceil(cy);
-			}else if (yVec > axesOff) {
-				cy = (float) Math.floor(cy);
-			}else {
-//				System.out.println("Y round "+yVec+" "+Math.round(cy));
-				cy = (float) Math.round(cy);
-			}
-			
 			int chunkX = (int) Math.floor(cx/16.0);
 			int chunkZ = (int) Math.floor(cz/16.0);
 			
 			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.getChunk(chunkX, chunkZ);
-			if (current != null) {
-				int relX = (int) cx % 16;
-				int relZ = (int) cz % 16;
-				
-				if (cx < 0) {
-					relX = (int) (15 - (Math.abs(1+cx) % 16));
-				}else {
-					relX = (int) cx % 16;
-				}
-				if (cz < 0) {
-					relZ = (int) (15 - (Math.abs(1+cz) % 16));
-				}else {
-					relZ = (int) cz % 16;
-				}
-				
-				if (current.get(relX).get(relZ).size() > Math.floor(cy) && cy > 0 && current.get(relX).get(relZ).get((int) Math.floor(cy)) != 0){
-					current.get(relX).get(relZ).set((int) Math.floor(cy), (short) 0);
+			Coord<Integer> collisionPoint = blockCollision(cx, cy, cz, current);
+			if (collisionPoint != null) {
+				if (current.get(collisionPoint.getX()).get(collisionPoint.getZ()).size() > collisionPoint.getY() && collisionPoint.getY() > 0 && current.get(collisionPoint.getX()).get(collisionPoint.getZ()).get(collisionPoint.getY()) != 0){
+					current.get(collisionPoint.getX()).get(collisionPoint.getZ()).set(collisionPoint.getY(), (short) 0);
 					if (Game.MULTIPLAYER) {
+						//TODO Fix inaccurate due to changed cx, cy, cz
 						out.println(BLOCK_UPDATE+" "+(int) cx+" "+(int) cy+" "+(int) cz+" 0");
 					}
 					worldGen.editedChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
 					try {
 						window.getChunk(chunkX, chunkZ).load(worldGen);
 						//Updating adjacent chunks if neccessary
-						if ((int) Math.floor(relX) == 15) {
+						if ((int) Math.floor(collisionPoint.getX()) == 15) {
 							window.getChunk(chunkX+1, chunkZ).load(worldGen);
-						}if ((int) Math.floor(relZ) == 15) {
+						}if ((int) Math.floor(collisionPoint.getZ()) == 15) {
 							window.getChunk(chunkX, chunkZ+1).load(worldGen);
-						}if ((int) Math.floor(relX) == 0) {
+						}if ((int) Math.floor(collisionPoint.getX()) == 0) {
 							window.getChunk(chunkX-1, chunkZ).load(worldGen);
-						}if ((int) Math.floor(relZ) == 0) {
+						}if ((int) Math.floor(collisionPoint.getZ()) == 0) {
 							window.getChunk(chunkX, chunkZ-1).load(worldGen);
 						}
 					}catch(Exception e) {
@@ -664,7 +633,6 @@ public class Player implements KeyListener, MouseListener, Protocol{
 	 * @param window The window to place the block in
 	 */
 	private void placeBlock(WindowUpdates window) {
-		float axesOff = (float) Math.PI/12.0f;
 		
 		float yVec = (float) -Math.sin(Math.toRadians(yRot));
 		float xzComponent = (float) Math.cos(Math.toRadians(yRot));
@@ -681,29 +649,9 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			cy = pos.getY() + i*yVec;
 			cz = pos.getZ() + i*zVec;
 			
-			if (zVec < -axesOff) {
-				cz = (float) Math.ceil(cz);
-			}else if (zVec > axesOff) {
-				cz = (float) Math.floor(cz);
-			}else {
-				cz = (float) Math.round(cz);
-			}
-			
-			if (xVec < -axesOff) {
-				cx = (float) Math.ceil(cx);
-			}else if (xVec > axesOff) {
-				cx = (float) Math.floor(cx);
-			}else {
-				cx = (float) Math.round(cx);
-			}
-			
-			if (yVec < -axesOff) {
-				cy = (float) Math.ceil(cy);
-			}else if (yVec > axesOff) {
-				cy = (float) Math.floor(cy);
-			}else {
-				cy = (float) Math.round(cy);
-			}
+			cx = (float) Math.floor(cx - 0.5);
+			cy = (float) Math.floor(cy - 0.5);
+			cz = (float) Math.floor(cz - 0.5);
 			
 			int chunkX = (int) Math.floor(cx/16.0);
 			int chunkZ = (int) Math.floor(cz/16.0);
@@ -730,29 +678,10 @@ public class Player implements KeyListener, MouseListener, Protocol{
 					cy = pos.getY() + i*yVec;
 					cz = pos.getZ() + i*zVec;
 					
-					if (zVec < -axesOff) {
-						cz = (float) Math.ceil(cz);
-					}else if (zVec > axesOff) {
-						cz = (float) Math.floor(cz);
-					}else {
-						cz = (float) Math.round(cz);
-					}
+					cx = (float) Math.floor(cx - 0.5);
+					cy = (float) Math.floor(cy - 0.5);
+					cz = (float) Math.floor(cz - 0.5);
 					
-					if (xVec < -axesOff) {
-						cx = (float) Math.ceil(cx);
-					}else if (xVec > axesOff) {
-						cx = (float) Math.floor(cx);
-					}else {
-						cx = (float) Math.round(cx);
-					}
-					
-					if (yVec < -axesOff) {
-						cy = (float) Math.ceil(cy);
-					}else if (yVec > axesOff) {
-						cy = (float) Math.floor(cy);
-					}else {
-						cy = (float) Math.round(cy);
-					}
 					
 					chunkX = (int) Math.floor(cx/16.0);
 					chunkZ = (int) Math.floor(cz/16.0);
@@ -778,8 +707,8 @@ public class Player implements KeyListener, MouseListener, Protocol{
 //					current.get(relX).get(relZ).set((int) Math.floor(cy), 1);
 					current.get(relX).get(relZ).set((int) Math.floor(cy), (short) 6);
 					
-
-					window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>((int) cx,(int) cy,(int) cz));
+					worldGen.liquids.put(new Coord<Integer>((int) cx,(int) Math.floor(cy),(int) cz), 1f);
+					window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>((int) cx,(int) Math.floor(cy),(int) cz));
 					if (Game.MULTIPLAYER) {
 						out.println(BLOCK_UPDATE+" "+(int) cx+" "+(int) cy+" "+(int) cz+" 1");
 					}

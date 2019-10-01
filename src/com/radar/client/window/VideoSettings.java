@@ -1,5 +1,5 @@
 package com.radar.client.window;
 
 public class VideoSettings {
-	protected static int renderDistance = 18;
+	protected static int renderDistance = 20;
 }
