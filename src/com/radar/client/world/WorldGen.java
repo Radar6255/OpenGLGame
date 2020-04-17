@@ -24,7 +24,7 @@ public class WorldGen implements Runnable {
 	/**
 	 * Holds the data for all the blocks in world
 	 */
-	HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>> world;
+	volatile HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>> world;
 	
 	/**
 	 * Holds height of all liquids in the world
@@ -129,10 +129,12 @@ public class WorldGen implements Runnable {
 	 * @return The chunk in the world at the desired position, null if it doesn't exist
 	 */
 	public ArrayList<ArrayList<ArrayList<Short>>> getChunk(int x, int z){
-//		System.out.println(chunks.containsKey(new Coord2D<Integer>(x, z)));
-//		System.out.println("Get "+x+" "+z);
-//		return world.get(x + xOffset).get(z + zOffset);
 		return world.get(new Coord2D<Integer>(x, z));
+	}
+	
+	public void putChunk(int x, int z, ArrayList<ArrayList<ArrayList<Short>>> data) {
+		world.put(new Coord2D<Integer>(x, z), data);
+//		Thread temp = new Thread({world.put(new Coord2D<Integer>(x, z), data);});
 	}
 	
 	/**
@@ -162,7 +164,7 @@ public class WorldGen implements Runnable {
 	 * @param z The z position of the block
 	 * @param chunkX The chunk the block is in x's position
 	 * @param chunkZ The chunk the block is in z's position
-	 * @return The blockID at that position
+	 * @return The blockID at that position, or -1 if invalid y position
 	 */
 	public int getBlock(float x, float y, float z, int chunkX, int chunkZ) {
 		ArrayList<ArrayList<ArrayList<Short>>> current = getChunk(chunkX, chunkZ);
@@ -247,7 +249,7 @@ public class WorldGen implements Runnable {
 							saved.remove(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ));
 							editedChunks.add(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ));
 						}
-
+						//TODO Error about null pointer
 						else if (!world.containsKey(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ))){
 							ArrayList<ArrayList<ArrayList<Short>>> chunk = new ArrayList<ArrayList<ArrayList<Short>>>();
 							world.put(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ), chunk);

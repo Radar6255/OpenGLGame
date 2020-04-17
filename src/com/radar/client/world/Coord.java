@@ -30,8 +30,6 @@ public class Coord<E> {
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
-		if (obj == null)
-			return false;
 		if (getClass() != obj.getClass())
 			return false;
 		Coord other = (Coord) obj;

@@ -225,8 +225,6 @@ public class WindowUpdates implements GLEventListener {
 	
 	@Override
 	public void init(GLAutoDrawable drawable) {
-		
-		// TODO Auto-generated method stub
 		GL2 gl = drawable.getGL().getGL2();
 		textures = new TextureMap(gl);
 		gen = new WorldGen(player, seed, this);

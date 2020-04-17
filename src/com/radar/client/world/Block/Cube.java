@@ -3,6 +3,7 @@ package com.radar.client.world.Block;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedList;
 
 import com.radar.client.world.Coord;
 import com.radar.client.world.TextureMap;
@@ -31,7 +32,6 @@ public abstract class Cube {
 	 */
 	private Integer[] faceIDs = new Integer[6];
 	
-	//TODO Calculate face normals
 	private final static float[][] normals = new float[][] {
 		{0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, 
 		{0.0f, 0.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, 
@@ -90,6 +90,9 @@ public abstract class Cube {
 				numVisibleFaces++;
 			}
 		}
+		for (int i = 0; i < 6; i++) {
+			faceIDs[i] = -i - 1;
+		}
 	}
 	
 	public void setVerticies(float[][] verts) {
@@ -127,6 +130,8 @@ public abstract class Cube {
 		return faceVerts;
 	}
 	
+	
+	
 	public float[][] getNormals() {
 		float[][] pointNormals = new float[numVisibleFaces*4][3];
 		byte visibleFace = 0;
@@ -152,18 +157,87 @@ public abstract class Cube {
 		}return false;
 	}
 	
-	public void renderUpdate() {
+	public void facesNotVisible() {
+		visibleFaces = new boolean[] {false, false, false, false, false, false};
+	}
+	
+	//TODO Make so that renderUpdate also changes numVisibleFaces
+	/**
+	 * @return 
+	 */
+	public LinkedList<FaceUpdateData> renderUpdate() {
 		boolean[] previousVisibleFaces = visibleFaces.clone();
-		byte[] out = new byte[6];
+		for (int i = 0; i < 6; i++) {
+			visibleFaces[i] = true;
+		}
+		
 		adjacentFaceCull();
-		//TODO Return whether faces are removed, added, changed, or remained the same
+		byte action;
+		int faceID;
+		LinkedList<FaceUpdateData> out = new LinkedList<>();
 		for (int i = 0; i < 6; i++) {
 			if (previousVisibleFaces[i] != visibleFaces[i]) {
-				if (visibleFaces[i] && !previousVisibleFaces[i]) {
-					
+				faceID = faceIDs[i];
+				if (visibleFaces[i]) {
+					action = 1;
+					float[][] verts = getFaceVert(faceID);
+					float[][] norms = getFaceNorm(faceID);
+					out.add(new FaceUpdateData(action, faceID, verts, norms));
+				}else {
+					action = -1;
+					out.add(new FaceUpdateData(action, faceID));
 				}
-			}else {
-				out[i] = 0;
+			}
+		}
+		return out;
+	}
+	
+	public float[][] getFaceNorm(int faceID) {
+		float[][] out = new float[4][5];
+		for (int i = 0; i < 6; i++) {
+			if (faceIDs[i] == faceID) {
+				for (int v = 0; v < 4; v++) {
+					out[v] = new float[] {normals[(i*4) + v][0], normals[(i*4) + v][1], normals[(i*4) + v][2]};
+				}
+			}
+		}
+		return out;
+	}
+	
+	/**
+	 * @param faceID The faceID to get the verticies of
+	 * @return The verticies of the specified face
+	 */
+	public float[][] getFaceVert(int faceID) {
+		float[][] out = new float[4][];
+		for (int i = 0; i < 6; i++) {
+			if (faceIDs[i] == faceID) {
+				float[] temp = TextureMap.getTexCoords(faceTextures[i]);
+				for (int v = 0; v < 4; v++) {
+					out[v] = new float[] {verts[(i*4) + v][0] + coords.getX(), verts[(i*4) + v][1] + coords.getY(), verts[(i*4) + v][2] + coords.getZ(), //X, Y, Z position of face
+							(verts[(i*4)+v][3]*temp[2]) + temp[0], (verts[(i*4)+v][4]*temp[2]) + temp[1]};
+				}
+				break;
+			}
+		}
+		return out;
+	}
+	
+	public void replaceId(int oldID, int newID) {
+		for (int i = 0; i < 6; i++) {
+			if(faceIDs[i] == oldID) {
+				faceIDs[i] = newID;
+				System.out.println("Changed ID");
+				return;
+			}
+		}System.out.println( "Unable to replace ID:"+oldID+" with "+newID );
+	}
+	
+	public void replaceId(int oldID) {
+		for (int i = 0; i < 6; i++) {
+			if(faceIDs[i] == oldID) {
+				faceIDs[i] = -i - 1;
+				return;
 			}
 		}
 	}
@@ -172,6 +246,7 @@ public abstract class Cube {
 	 * Used to get rid of faces between cubes that won't be seen
 	 */
 	private void adjacentFaceCull() {
+		numVisibleFaces = 6;
 		int chunkX, chunkZ;
 		
 		chunkX = (int) Math.floor(coords.getX()/16.0);
@@ -180,6 +255,7 @@ public abstract class Cube {
 		
 		ArrayList<ArrayList<ArrayList<Short>>> currentChunk = gen.getChunk(chunkX, chunkZ);
 		ArrayList<ArrayList<ArrayList<Short>>> adjacentChunk;
+		
 		
 		//Finding this cubes position relative to the corner of the chunk it is in
 		byte relX, relZ;
@@ -196,9 +272,9 @@ public abstract class Cube {
 		
 		if (relX-1 >= 0) {
 			if (currentChunk.get(relX-1).get(relZ).size() > coords.getY()) {
-//				if (currentChunk.get(relX-1).get(relZ).get(coords.getY()) != 0) {
 				if (!transparentBlockIDs.contains(currentChunk.get(relX-1).get(relZ).get(coords.getY()))) {
 					visibleFaces[3] = false;
+					numVisibleFaces--;
 				}
 			}
 		}else {
@@ -207,6 +283,7 @@ public abstract class Cube {
 				if (adjacentChunk.get(15).get(relZ).size() > coords.getY()) {
 					if (!transparentBlockIDs.contains(adjacentChunk.get(15).get(relZ).get(coords.getY()))) {
 						visibleFaces[3] = false;
+						numVisibleFaces--;
 					}
 				}
 			}
@@ -215,6 +292,7 @@ public abstract class Cube {
 			if (currentChunk.get(relX).get(relZ-1).size() > coords.getY()) {
 				if (!transparentBlockIDs.contains(currentChunk.get(relX).get(relZ-1).get(coords.getY()))) {
 					visibleFaces[1] = false;
+					numVisibleFaces--;
 				}
 			}
 		}else {
@@ -223,6 +301,7 @@ public abstract class Cube {
 				if (adjacentChunk.get(relX).get(15).size() > coords.getY()) {
 					if (!transparentBlockIDs.contains(adjacentChunk.get(relX).get(15).get(coords.getY()))) {
 						visibleFaces[1] = false;
+						numVisibleFaces--;
 					}
 				}
 			}
@@ -231,6 +310,7 @@ public abstract class Cube {
 			if (currentChunk.get(relX+1).get(relZ).size() > coords.getY()) {
 				if (!transparentBlockIDs.contains(currentChunk.get(relX+1).get(relZ).get(coords.getY()))) {
 					visibleFaces[2] = false;
+					numVisibleFaces--;
 				}
 			}
 		}else {
@@ -239,6 +319,7 @@ public abstract class Cube {
 				if (adjacentChunk.get(0).get(relZ).size() > coords.getY()) {
 					if (!transparentBlockIDs.contains(adjacentChunk.get(0).get(relZ).get(coords.getY()))) {
 						visibleFaces[2] = false;
+						numVisibleFaces--;
 					}
 				}
 			}
@@ -247,6 +328,7 @@ public abstract class Cube {
 			if (currentChunk.get(relX).get(relZ+1).size() > coords.getY()) {
 				if (!transparentBlockIDs.contains(currentChunk.get(relX).get(relZ+1).get(coords.getY()))) {
 					visibleFaces[0] = false;
+					numVisibleFaces--;
 				}
 			}
 		}else {
@@ -255,6 +337,7 @@ public abstract class Cube {
 				if (adjacentChunk.get(relX).get(0).size() > coords.getY()) {
 					if (!transparentBlockIDs.contains(adjacentChunk.get(relX).get(0).get(coords.getY()))) {
 						visibleFaces[0] = false;
+						numVisibleFaces--;
 					}
 				}
 			}
@@ -262,12 +345,25 @@ public abstract class Cube {
 		if (coords.getY()-1 >= 0) {
 			if (!transparentBlockIDs.contains(currentChunk.get(relX).get(relZ).get(coords.getY()-1))) {
 				visibleFaces[5] = false;
+				numVisibleFaces--;
 			}
 		}
 		if (coords.getY()+1 < currentChunk.get(relX).get(relZ).size()) {
 			if (!transparentBlockIDs.contains(currentChunk.get(relX).get(relZ).get(coords.getY()+1))) {
 				visibleFaces[4] = false;
+				numVisibleFaces--;
 			}
 		}
+	}
+	
+	public int[] remove() {
+		int[] out = new int[numVisibleFaces];
+		int temp = 0;
+		for (int i = 0; i < 6; i++) {
+			if(visibleFaces[i]) {
+				out[temp] = faceIDs[i];
+				temp++;
+			}
+		}return out;
 	}
 }

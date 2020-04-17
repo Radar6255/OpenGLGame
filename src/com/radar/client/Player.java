@@ -130,8 +130,12 @@ public class Player implements KeyListener, MouseListener, Protocol{
 		//Getting mouse details
 		PointerInfo mouseLoc = MouseInfo.getPointerInfo();
 		//TODO Sometimes throws errors when alt-tabbing
-		Point tempPoint = mouseLoc.getLocation();
-		
+		Point tempPoint;
+		try {
+			tempPoint = mouseLoc.getLocation();
+		}catch(Exception E) {
+			tempPoint = new Point(centerX, centerY);
+		}
 		float x = (float) tempPoint.getX();
 		float y = (float) tempPoint.getY();
 
@@ -270,17 +274,18 @@ public class Player implements KeyListener, MouseListener, Protocol{
 		
 		while (i < 50) {
 			cx = pos.getX() + (float) (i*xVec);
-			cy = pos.getY() + (float) (i*yVec) - 0f;
+			cy = pos.getY() + (float) (i*yVec);
 			cz = pos.getZ() + (float) (i*zVec);
 			
-			cx = (float) Math.floor(cx - 0.5);
-			cy = (float) Math.floor(cy - 0.5);
-			cz = (float) Math.floor(cz - 0.5);
+			cx = (float) Math.ceil(cx - 0.5);
+			cy = (float) Math.ceil(cy - 0.5);
+			cz = (float) Math.ceil(cz - 0.5);
 			
 			int chunkX = (int) Math.floor(cx/16.0);
 			int chunkZ = (int) Math.floor(cz/16.0);
 			
 			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.getChunk(chunkX, chunkZ);
+//			Coord<Integer> collision = pointCollision(cx, cy, cz, current);
 			if (current != null) {
 				int relX = (int) cx % 16;
 				int relZ = (int) cz % 16;
@@ -542,7 +547,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 	 * @param currentChunk The chunk to check for the collision
 	 * @return The point relative to the chunk where the collision happened or null if it didn't collide
 	 */
-	public Coord<Integer> blockCollision(float x, float y, float z, ArrayList<ArrayList<ArrayList<Short>>> currentChunk) {
+	public Coord<Integer> pointCollision(float x, float y, float z, ArrayList<ArrayList<ArrayList<Short>>> currentChunk) {
 		float cx = (float) Math.ceil(x - 0.5);
 		float cy = (float) Math.ceil(y - 0.5);
 		float cz = (float) Math.ceil(z - 0.5);
@@ -594,30 +599,50 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			int chunkX = (int) Math.floor(cx/16.0);
 			int chunkZ = (int) Math.floor(cz/16.0);
 			
+			
 			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.getChunk(chunkX, chunkZ);
-			Coord<Integer> collisionPoint = blockCollision(cx, cy, cz, current);
+			Coord<Integer> collisionPoint = pointCollision(cx, cy, cz, current);
 			if (collisionPoint != null) {
 				if (current.get(collisionPoint.getX()).get(collisionPoint.getZ()).size() > collisionPoint.getY() && collisionPoint.getY() > 0 && current.get(collisionPoint.getX()).get(collisionPoint.getZ()).get(collisionPoint.getY()) != 0){
+					int relX = (int) cx % 16;
+					int relZ = (int) cz % 16;
+					
+					if (cx < 0) {
+						relX = (int) (15 - (Math.abs(1+cx) % 16));
+					}else {
+						relX = (int) cx % 16;
+					}
+					if (cz < 0) {
+						relZ = (int) (15 - (Math.abs(1+cz) % 16));
+					}else {
+						relZ = (int) cz % 16;
+					}
 					current.get(collisionPoint.getX()).get(collisionPoint.getZ()).set(collisionPoint.getY(), (short) 0);
+
+					cy = collisionPoint.getY();
 					if (Game.MULTIPLAYER) {
-						//TODO Fix inaccurate due to changed cx, cy, cz
+						//TODO Fix, inaccurate due to changed cx, cy, cz
 						out.println(BLOCK_UPDATE+" "+(int) cx+" "+(int) cy+" "+(int) cz+" 0");
 					}
 					worldGen.editedChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
 					try {
-						window.getChunk(chunkX, chunkZ).load(worldGen);
+//						window.getChunk(chunkX, chunkZ).load(relX, (int) cy, relZ, worldGen);
+						window.getChunk(chunkX, chunkZ).load(collisionPoint.getX(), collisionPoint.getY(), collisionPoint.getZ(), worldGen);
 						//Updating adjacent chunks if neccessary
 						if ((int) Math.floor(collisionPoint.getX()) == 15) {
-							window.getChunk(chunkX+1, chunkZ).load(worldGen);
-						}if ((int) Math.floor(collisionPoint.getZ()) == 15) {
-							window.getChunk(chunkX, chunkZ+1).load(worldGen);
-						}if ((int) Math.floor(collisionPoint.getX()) == 0) {
-							window.getChunk(chunkX-1, chunkZ).load(worldGen);
-						}if ((int) Math.floor(collisionPoint.getZ()) == 0) {
-							window.getChunk(chunkX, chunkZ-1).load(worldGen);
+							window.getChunk(chunkX+1, chunkZ).load(0, (int) cy, relZ, worldGen);
+						}else if ((int) Math.floor(collisionPoint.getX()) == 0) {
+							window.getChunk(chunkX-1, chunkZ).load(15, (int) cy, relZ, worldGen);
 						}
+						
+						if ((int) Math.floor(collisionPoint.getZ()) == 15) {
+							window.getChunk(chunkX, chunkZ+1).load(relX, (int) cy, 0, worldGen);
+						}else if ((int) Math.floor(collisionPoint.getZ()) == 0) {
+							window.getChunk(chunkX, chunkZ-1).load(relX, (int) cy, 15, worldGen);
+						}
+						
 					}catch(Exception e) {
-						System.out.println("Placed block out of viewing range");
+						e.printStackTrace();
 					}
 					breakB = false;
 					break;
@@ -649,45 +674,29 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			cy = pos.getY() + i*yVec;
 			cz = pos.getZ() + i*zVec;
 			
-			cx = (float) Math.floor(cx - 0.5);
-			cy = (float) Math.floor(cy - 0.5);
-			cz = (float) Math.floor(cz - 0.5);
-			
 			int chunkX = (int) Math.floor(cx/16.0);
 			int chunkZ = (int) Math.floor(cz/16.0);
 			
 			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.getChunk(chunkX, chunkZ);
-			if (current != null) {
-				int relX = (int) cx % 16;
-				int relZ = (int) cz % 16;
-				
-				if (cx < 0) {
-					relX = (int) (15 - (Math.abs(1+cx) % 16));
-				}else {
-					relX = (int) cx % 16;
-				}
-				if (cz < 0) {
-					relZ = (int) (15 - (Math.abs(1+cz) % 16));
-				}else {
-					relZ = (int) cz % 16;
-				}
 			
-				if (current.get(relX).get(relZ).size() > Math.floor(cy) && current.get(relX).get(relZ).get((int) Math.floor(cy)) != 0){
+			Coord<Integer> collisionPoint = pointCollision(cx, cy, cz, current);
+			if (collisionPoint != null) {
+				if (current.get(collisionPoint.getX()).get(collisionPoint.getZ()).size() > collisionPoint.getY() && collisionPoint.getY() > 0 && current.get(collisionPoint.getX()).get(collisionPoint.getZ()).get(collisionPoint.getY()) != 0){
+
 					i -= 0.004f * 1;
 					cx = pos.getX() + i*xVec;
 					cy = pos.getY() + i*yVec;
 					cz = pos.getZ() + i*zVec;
 					
-					cx = (float) Math.floor(cx - 0.5);
-					cy = (float) Math.floor(cy - 0.5);
-					cz = (float) Math.floor(cz - 0.5);
-					
+					cx = (float) Math.ceil(cx - 0.5);
+					cy = (float) Math.ceil(cy - 0.5);
+					cz = (float) Math.ceil(cz - 0.5);
 					
 					chunkX = (int) Math.floor(cx/16.0);
 					chunkZ = (int) Math.floor(cz/16.0);
 					
-					relX = (int) cx % 16;
-					relZ = (int) cz % 16;
+					int relX = (int) cx % 16;
+					int relZ = (int) cz % 16;
 					
 					if (cx < 0) {
 						relX = (int) (15 - (Math.abs(1+cx) % 16));
@@ -701,29 +710,34 @@ public class Player implements KeyListener, MouseListener, Protocol{
 					}
 					
 					current = worldGen.getChunk(chunkX, chunkZ);
-					while (current.get(relX).get(relZ).size() <= Math.floor(cy)) {
-						current.get(relX).get(relZ).add((short) 0);
+					collisionPoint = new Coord<Integer>(relX, (int) cy, relZ);
+					
+					while (current.get(collisionPoint.getX()).get(collisionPoint.getZ()).size() <= collisionPoint.getY()) {
+						current.get(collisionPoint.getX()).get(collisionPoint.getZ()).add((short) 0);
 					}
 //					current.get(relX).get(relZ).set((int) Math.floor(cy), 1);
-					current.get(relX).get(relZ).set((int) Math.floor(cy), (short) 6);
+					//TODO Get the current block in hand
+					current.get(collisionPoint.getX()).get(collisionPoint.getZ()).set((int) collisionPoint.getY(), (short) 1);
 					
-					worldGen.liquids.put(new Coord<Integer>((int) cx,(int) Math.floor(cy),(int) cz), 1f);
-					window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>((int) cx,(int) Math.floor(cy),(int) cz));
+					worldGen.liquids.put(new Coord<Integer>(collisionPoint.getX(),collisionPoint.getY(),(int) collisionPoint.getZ()), 1f);
+					window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>(collisionPoint.getX(),collisionPoint.getY(),collisionPoint.getZ()));
 					if (Game.MULTIPLAYER) {
 						out.println(BLOCK_UPDATE+" "+(int) cx+" "+(int) cy+" "+(int) cz+" 1");
 					}
 					worldGen.editedChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
 					try {
-						window.getChunk(chunkX, chunkZ).load(worldGen);
+						cy = collisionPoint.getY();
+						window.getChunk(chunkX, chunkZ).load(relX, (int) collisionPoint.getY(), relZ, worldGen);
+//						window.getChunk(chunkX, chunkZ).load(relX, (int) cy, relZ, worldGen);
 						//Updating adjacent chunks if neccessary
-						if ((int) Math.floor(relX) == 15) {
-							window.getChunk(chunkX+1, chunkZ).load(worldGen);
-						}if ((int) Math.floor(relZ) == 15) {
-							window.getChunk(chunkX, chunkZ+1).load(worldGen);
-						}if ((int) Math.floor(relX) == 0) {
-							window.getChunk(chunkX-1, chunkZ).load(worldGen);
-						}if ((int) Math.floor(relZ) == 0) {
-							window.getChunk(chunkX, chunkZ-1).load(worldGen);
+						if ((int) Math.floor(collisionPoint.getX()) == 15) {
+							window.getChunk(chunkX+1, chunkZ).load(relX, (int) cy, relZ, worldGen);
+						}if ((int) Math.floor(collisionPoint.getX()) == 15) {
+							window.getChunk(chunkX, chunkZ+1).load(relX, (int) cy, relZ, worldGen);
+						}if ((int) Math.floor(collisionPoint.getX()) == 0) {
+							window.getChunk(chunkX-1, chunkZ).load(relX, (int) cy, relZ, worldGen);
+						}if ((int) Math.floor(collisionPoint.getX()) == 0) {
+							window.getChunk(chunkX, chunkZ-1).load(relX, (int) cy, relZ, worldGen);
 						}
 					}catch(Exception e) {
 						System.out.println("Placed block out of viewing range");

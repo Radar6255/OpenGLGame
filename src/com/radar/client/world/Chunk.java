@@ -11,8 +11,10 @@ import com.jogamp.opengl.GL2;
 import com.radar.client.window.WindowUpdates;
 import com.radar.client.world.Block.Block;
 import com.radar.client.world.Block.Cube;
+import com.radar.client.world.Block.FaceUpdateData;
 import com.radar.client.world.Block.Fluid;
 import com.radar.client.world.Block.Updateable;
+import com.radar.common.PointConversion;
 
 /**
  * @author radar
@@ -23,7 +25,6 @@ public class Chunk {
 	/**
 	 * List of all cubes in this chunk
 	 */
-//	private LinkedList<Cube> cubes;
 	private HashMap<Coord<Integer>, Cube> cubes;
 	
 	/**
@@ -37,6 +38,14 @@ public class Chunk {
 	
 	
 	public HashSet<Coord<Integer>> blocksToUpdate;
+	
+	private LinkedList<Integer> facesToRemove;
+	
+	private LinkedList<Cube> cubesToModify;
+	
+	private LinkedList<FaceUpdateData> facesToAdd;
+	
+	private static final int EXTRA_FACES = 30;
 	
 	/**
 	 * Used to do some buffer creation on this chunks first render call
@@ -73,12 +82,15 @@ public class Chunk {
 	 */
 	private int[] normalHandle = new int[1];
 	
+	
 	/**
 	 * Holds the number of faces visible in this chunk
 	 */
-	private int numFaces = 0;
+	private volatile int numFaces = 0;
 	
 	ArrayList<Integer> availableSpace;
+	
+	private int maxFaces;
 	
 	/**
 	 * Indicies of textures for each face
@@ -98,9 +110,14 @@ public class Chunk {
 		blocksToUpdate = new HashSet<>();
 		availableSpace = new ArrayList<>();
 		
+		facesToRemove = new LinkedList<>();
+		facesToAdd = new LinkedList<>();
+		cubesToModify = new LinkedList<>();
+		
 		load(gen);
 	}
 	
+	@SuppressWarnings("unchecked")
 	public void update(WorldGen gen, WindowUpdates window) {
 		boolean ran = false;
 		LinkedList<Updateable> tempUpdates = (LinkedList<Updateable>) blockUpdates.clone();
@@ -114,6 +131,7 @@ public class Chunk {
 		//Allows blocks to be removed/added visually
 		if (ran) {
 			load(gen);
+			System.out.println("Chunk update");
 			update = true;
 		}
 		
@@ -124,7 +142,6 @@ public class Chunk {
 	 * before first render call, also called on block updates
 	 */
 	public void load(WorldGen gen) {
-		long start = System.currentTimeMillis();
 		//TODO Find a more precise way of finding number of blocks in a chunk or get a better guess
 		cubes = new HashMap<>(100);
 		visibleCubes = new LinkedList<>();
@@ -163,50 +180,81 @@ public class Chunk {
 		blocksToUpdate.clear();
 		generateBufferArray();
 		update = true;
-		System.out.println("Load Chunk "+x+" "+z+" "+(System.currentTimeMillis()-start));
 	}
 	
 	public void load(int x, int y, int z, WorldGen gen) {
-		ArrayList<ArrayList<ArrayList<Short>>> chunk = gen.getChunk(x, z);
-		if (chunk.get(x).get(z).get(y) == 0) {
-			cubes.remove(new Coord<Integer>(x,y,z));
+		System.out.println((x+16*this.x)+" "+y+" "+(z+16*this.z));
+		ArrayList<ArrayList<ArrayList<Short>>> chunk = gen.getChunk(this.x, this.z);
+		Coord2D<Integer> rel = PointConversion.absoluteToRelative(new Coord2D<Integer>(x, z));
+		
+		if(chunk.get(rel.getX()).get(rel.getZ()).size() <= y) {
+			return;
+		}
+		
+		if (chunk.get(rel.getX()).get(rel.getZ()).get(y) == 0) {
+			int[] temp = cubes.get(new Coord<Integer>(x+16*this.x,y,z+16*this.z)).remove();
+			
+			for (int i = 0; i < temp.length; i++) {
+				facesToRemove.add(temp[i]);
+			}
+			
+			cubes.remove(new Coord<Integer>(x+16*this.x,y,z+16*this.z));
 		}else {
-			if (chunk.get(x).get(z).get(y) != 6) {
-				cubes.put(new Coord<Integer>(x,y,z), new Block(x,y,z, faceTextures[chunk.get(x).get(z).get(y)-1], gen));
+			if (chunk.get(rel.getX()).get(rel.getZ()).get(y) != 6) {
+				//TODO get faces from block to put into facesToAdd
+				Block block = new Block(x+16*this.x,y,z+16*this.z, faceTextures[chunk.get(x).get(z).get(y)-1], gen);
+				cubes.put(new Coord<Integer>(x+16*this.x,y,z+16*this.z), block);
+				block.facesNotVisible();
+				
 			}else {
 				Fluid temp;
 				try {
-					temp = new Fluid(x, y, z, faceTextures[chunk.get(x).get(z).get(y)-1], gen.liquids.get(new Coord<Integer>(x, y, z)), gen);
+					temp = new Fluid(x,y,z, faceTextures[chunk.get(x).get(z).get(y)-1], gen.liquids.get(new Coord<Integer>(x, y, z)), gen);
 				}catch(Exception e){
-					temp = new Fluid(x, y, z, faceTextures[chunk.get(x).get(z).get(y)-1], 1, gen);
+					temp = new Fluid(x,y,z, faceTextures[chunk.get(x).get(z).get(y)-1], 1, gen);
 				}
 				addCube(new Coord<Integer>(x,y,z), temp);
 			}
+			updateCube(rel.getX(),y,rel.getZ());
 		}
-		
-		if (cubes.containsKey(new Coord<Integer>(x+1,y,z))) {
-			Cube update = cubes.get(new Coord<Integer>(x+1,y,z));
+		if (cubes.containsKey(new Coord<Integer>(x+1+16*this.x,y,z+16*this.z))) {
+			updateCube(x+1, y, z);
 			
-		}if (cubes.containsKey(new Coord<Integer>(x-1,y,z))) {
-			Cube update = cubes.get(new Coord<Integer>(x-1,y,z));
+		}if (cubes.containsKey(new Coord<Integer>(x-1+16*this.x,y,z+16*this.z))) {
+			updateCube(x-1, y, z);
 			
-		}if (cubes.containsKey(new Coord<Integer>(x,y+1,z))) {
-			Cube update = cubes.get(new Coord<Integer>(x,y+1,z));
+		}if (cubes.containsKey(new Coord<Integer>(x+16*this.x,y+1,z+16*this.z))) {
+			updateCube(x, y+1, z);
 			
-		}if (cubes.containsKey(new Coord<Integer>(x,y-1,z))) {
-			Cube update = cubes.get(new Coord<Integer>(x,y-1,z));
+		}if (cubes.containsKey(new Coord<Integer>(x+16*this.x,y-1,z+16*this.z))) {
+			updateCube(x, y-1, z);
 			
-		}if (cubes.containsKey(new Coord<Integer>(x,y,z+1))) {
-			Cube update = cubes.get(new Coord<Integer>(x,y,z+1));
+		}if (cubes.containsKey(new Coord<Integer>(x+16*this.x,y,z+1+16*this.z))) {
+			updateCube(x, y, z+1);
 			
-		}if (cubes.containsKey(new Coord<Integer>(x,y,z-1))) {
-			Cube update = cubes.get(new Coord<Integer>(x,y,z-1));
+		}if (cubes.containsKey(new Coord<Integer>(x+16*this.x,y,z-1+16*this.z))) {
+			updateCube(x, y, z-1);
 			
+		}
+	}
+	
+	public void updateCube(int x, int y, int z) {
+		Cube update = cubes.get(new Coord<Integer>(x + this.x*16,y,z + this.z*16));
+		LinkedList<FaceUpdateData> in = update.renderUpdate();
+		for (FaceUpdateData curr: in) {
+			if (curr.getAction() == 1) {
+				cubesToModify.add(update);
+				facesToAdd.add(curr);
+			}else if (curr.getAction() == -1) {
+				facesToRemove.add(curr.getFaceID());
+				update.replaceId(curr.getFaceID());
+			}//TODO Deal with face changing
 		}
 	}
 	
 	/**
 	 * A function to add a cube to this chunk
+	 * @param The absolute position of the cube
 	 * @param cube The cube to add to the chunk
 	 */
 	public void addCube(Coord<Integer> pos,Cube cube) {
@@ -222,7 +270,7 @@ public class Chunk {
 		//It then stores the visible cubes and gets the number of faces that are visible
 		//This is to create the right size buffer
 		if (first) {
-			//Causes a little lag somethings may be able to be moved around
+			//Causes a little lag, somethings may be able to be moved around
 			initBuffers(gl);
 			first = false;
 			update = false;
@@ -231,7 +279,8 @@ public class Chunk {
 				delete(gl);
 				initBuffers(gl);
 				update = false;
-			}
+			}modifyBuffer(gl);
+			
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
 			gl.glTexCoordPointer(2, GL2.GL_FLOAT, 5*Buffers.SIZEOF_FLOAT, 3*Buffers.SIZEOF_FLOAT);
 			gl.glVertexPointer(3, GL2.GL_FLOAT, 5*Buffers.SIZEOF_FLOAT, 0l);
@@ -239,9 +288,102 @@ public class Chunk {
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, normalHandle[0]);
 			gl.glNormalPointer(GL2.GL_FLOAT, 3*Buffers.SIZEOF_FLOAT, 0l);
 			
-			
 			gl.glDrawArrays(GL2.GL_QUADS, 0, numFaces * 4);
 		}
+	}
+	
+	private void modifyBuffer (GL2 gl) {
+		if( facesToAdd.size() > 0 ) {
+			System.out.println("Faces Added: "+facesToAdd.size()+" Faces Removed: "+facesToRemove.size());
+		}
+		if(numFaces + facesToAdd.size() - facesToRemove.size() >= maxFaces) {
+			generateBufferArray();
+			delete(gl);
+			initBuffers(gl);
+			cubesToModify.clear();
+			facesToAdd.clear();
+			facesToRemove.clear();
+			return;
+		}
+		for (int i = 0; i < facesToAdd.size(); i++) {
+			FaceUpdateData face = facesToAdd.get(i);
+			float faceverts[] = new float[20];
+			float normals[] = new float[12];
+
+			float[][] tempFaceVerts = face.getVerts();
+			float[][] tempNormals = face.getNorms();
+
+			for (int x = 0; x < tempFaceVerts.length; x++) {
+				faceverts[x*5] = tempFaceVerts[x][0];
+				faceverts[x*5+1] = tempFaceVerts[x][1];
+				faceverts[x*5+2] = tempFaceVerts[x][2];
+				faceverts[x*5+3] = tempFaceVerts[x][3];
+				faceverts[x*5+4] = tempFaceVerts[x][4];
+
+				normals[x*3] = tempNormals[x][0];
+				normals[x*3+1] = tempNormals[x][1];
+				normals[x*3+2] = tempNormals[x][2];
+			}
+			FloatBuffer vertexBuffer = Buffers.newDirectFloatBuffer(5 * 4);
+			FloatBuffer normalBuffer = Buffers.newDirectFloatBuffer(3 * 4);
+
+			int replace = numFaces;
+			if(!facesToRemove.isEmpty()) {
+				replace = facesToRemove.remove();
+				numFaces--;
+			}
+
+			cubesToModify.get(i).replaceId(face.getFaceID(), replace);
+			vertexBuffer.put(faceverts);
+			//vertexBuffer.flip();
+			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
+			vertexBuffer.rewind();
+			gl.glBufferSubData(GL2.GL_ARRAY_BUFFER, replace*Buffers.SIZEOF_FLOAT*5*4, 5*4*Buffers.SIZEOF_FLOAT, vertexBuffer);
+
+			normalBuffer.put(normals);
+			//normalBuffer.flip();
+			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, normalHandle[0]);
+			normalBuffer.rewind();
+			gl.glBufferSubData(GL2.GL_ARRAY_BUFFER, replace*Buffers.SIZEOF_FLOAT*3*4, 3*4*Buffers.SIZEOF_FLOAT, normalBuffer);
+			numFaces++;
+			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
+
+			System.out.println("Num faces: "+numFaces+" Max faces: "+maxFaces+" Replaced Face: "+replace);
+			
+		}
+		cubesToModify.clear();
+		facesToAdd.clear();
+		
+		//Probably fine
+		//TODO possibly speed up loop
+		for (int i = 0; i < facesToRemove.size(); i++) {
+			float faceverts[] = new float[20];
+			float normals[] = new float[12];
+			
+			for (int t = 0; t < 20; t++) {
+				faceverts[t] = 0;
+			}for (int t = 0; t < 12; t++) {
+				normals[t] = 0;
+			}
+			
+			FloatBuffer vertexBuffer = Buffers.newDirectFloatBuffer(5 * 4);
+			FloatBuffer normalBuffer = Buffers.newDirectFloatBuffer(3 * 4);
+			
+			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
+			vertexBuffer.put(faceverts);
+			vertexBuffer.flip();
+			vertexBuffer.rewind();
+			gl.glBufferSubData(GL2.GL_ARRAY_BUFFER, facesToRemove.get(i)*Buffers.SIZEOF_FLOAT*4*5, 5*4*Buffers.SIZEOF_FLOAT, vertexBuffer);
+			
+			normalBuffer.put(normals);
+			normalBuffer.flip();
+			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, normalHandle[0]);
+			normalBuffer.rewind();
+			gl.glBufferSubData(GL2.GL_ARRAY_BUFFER, facesToRemove.get(i)*Buffers.SIZEOF_FLOAT*4*3, 3*4*Buffers.SIZEOF_FLOAT, normalBuffer);
+			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
+		}
+		
+		facesToRemove.clear();
 	}
 	
 	/**
@@ -250,6 +392,7 @@ public class Chunk {
 	private void generateBufferArray() {
 		Byte[] cubeFacesNums = new Byte[cubes.size()];
 		int t = 0;
+		numFaces = 0;
 		for (Cube cube: cubes.values()) {
 			if (cube.isVisible()) {
 				visibleCubes.add(cube);
@@ -259,12 +402,12 @@ public class Chunk {
 			}
 		}
 		
-		faceVerts = new float[numFaces * 4 * 5];
-		normals = new float[numFaces * 4 * 3];
+		faceVerts = new float[(numFaces+EXTRA_FACES) * 4 * 5];
+		normals = new float[(numFaces+EXTRA_FACES) * 4 * 3];
 		int pos = 0;
 		
 		for (Cube cube: visibleCubes) {
-			float[][] tempFaceVerts = cube.getFaceVerts(pos);
+			float[][] tempFaceVerts = cube.getFaceVerts(pos/4);
 			float[][] tempNormals = cube.getNormals();
 			
 			for (int i = 0; i < tempFaceVerts.length; i++) {
@@ -287,8 +430,9 @@ public class Chunk {
 	 * @param gl Used to create the buffers for this chunk
 	 */
 	private void initBuffers(GL2 gl) {
-		FloatBuffer vertexBuffer = Buffers.newDirectFloatBuffer(5 * 4 * numFaces);
-		FloatBuffer normalBuffer = Buffers.newDirectFloatBuffer(3 * 4 * numFaces);
+		FloatBuffer vertexBuffer = Buffers.newDirectFloatBuffer(5 * 4 * (numFaces + EXTRA_FACES));
+		FloatBuffer normalBuffer = Buffers.newDirectFloatBuffer(3 * 4 * (numFaces + EXTRA_FACES));
+		maxFaces = numFaces + EXTRA_FACES;
 		
 		normalBuffer.put(normals);
 		normalBuffer.flip();
@@ -297,12 +441,12 @@ public class Chunk {
 		
 		gl.glGenBuffers(1, vertexHandle, 0);
 		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
-		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 5 * numFaces, vertexBuffer, GL2.GL_STATIC_DRAW);
+		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 5 * (numFaces+10), vertexBuffer, GL2.GL_STATIC_DRAW);
 		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
 		
 		gl.glGenBuffers(1, normalHandle, 0);
 		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, normalHandle[0]);
-		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3 * numFaces, normalBuffer, GL2.GL_STATIC_DRAW);
+		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3 * (numFaces+10), normalBuffer, GL2.GL_STATIC_DRAW);
 		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
 	}
 	
