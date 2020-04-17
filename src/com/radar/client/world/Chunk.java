@@ -183,7 +183,6 @@ public class Chunk {
 	}
 	
 	public void load(int x, int y, int z, WorldGen gen) {
-		System.out.println((x+16*this.x)+" "+y+" "+(z+16*this.z));
 		ArrayList<ArrayList<ArrayList<Short>>> chunk = gen.getChunk(this.x, this.z);
 		Coord2D<Integer> rel = PointConversion.absoluteToRelative(new Coord2D<Integer>(x, z));
 		
@@ -293,13 +292,14 @@ public class Chunk {
 	}
 	
 	private void modifyBuffer (GL2 gl) {
-		if( facesToAdd.size() > 0 ) {
-			System.out.println("Faces Added: "+facesToAdd.size()+" Faces Removed: "+facesToRemove.size());
-		}
+//		if( facesToAdd.size() > 0 ) {
+//			System.out.println("Faces Added: "+facesToAdd.size()+" Faces Removed: "+facesToRemove.size());
+//		}
 		if(numFaces + facesToAdd.size() - facesToRemove.size() >= maxFaces) {
 			generateBufferArray();
-			delete(gl);
+			deleteBuffers(gl);
 			initBuffers(gl);
+			
 			cubesToModify.clear();
 			facesToAdd.clear();
 			facesToRemove.clear();
@@ -348,7 +348,7 @@ public class Chunk {
 			numFaces++;
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
 
-			System.out.println("Num faces: "+numFaces+" Max faces: "+maxFaces+" Replaced Face: "+replace);
+//			System.out.println("Num faces: "+numFaces+" Max faces: "+maxFaces+" Replaced Face: "+replace);
 			
 		}
 		cubesToModify.clear();
@@ -390,6 +390,7 @@ public class Chunk {
 	 * Used to generate the array to be buffered on the GPU on the first call
 	 */
 	private void generateBufferArray() {
+		visibleCubes = new LinkedList<>();
 		Byte[] cubeFacesNums = new Byte[cubes.size()];
 		int t = 0;
 		numFaces = 0;
@@ -441,12 +442,12 @@ public class Chunk {
 		
 		gl.glGenBuffers(1, vertexHandle, 0);
 		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
-		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 5 * (numFaces+10), vertexBuffer, GL2.GL_STATIC_DRAW);
+		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 5 * (numFaces+EXTRA_FACES), vertexBuffer, GL2.GL_DYNAMIC_DRAW);
 		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
 		
 		gl.glGenBuffers(1, normalHandle, 0);
 		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, normalHandle[0]);
-		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3 * (numFaces+10), normalBuffer, GL2.GL_STATIC_DRAW);
+		gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3 * (numFaces+EXTRA_FACES), normalBuffer, GL2.GL_DYNAMIC_DRAW);
 		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
 	}
 	
@@ -469,12 +470,15 @@ public class Chunk {
 	 * @param gl A new instance of openGL used to delete buffers
 	 */
 	public void delete(GL2 gl) {
-		gl.glDeleteBuffers(1, vertexHandle, 0);
-		gl.glDeleteBuffers(1, normalHandle, 0);
+		deleteBuffers(gl);
 		cubes.clear();
 		visibleCubes.clear();
 	}
 
+	public void deleteBuffers(GL2 gl) {
+		gl.glDeleteBuffers(1, vertexHandle, 0);
+		gl.glDeleteBuffers(1, normalHandle, 0);
+	}
 
 	@Override
 	public int hashCode() {

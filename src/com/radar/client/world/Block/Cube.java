@@ -227,7 +227,6 @@ public abstract class Cube {
 		for (int i = 0; i < 6; i++) {
 			if(faceIDs[i] == oldID) {
 				faceIDs[i] = newID;
-				System.out.println("Changed ID");
 				return;
 			}
 		}System.out.println( "Unable to replace ID:"+oldID+" with "+newID );
