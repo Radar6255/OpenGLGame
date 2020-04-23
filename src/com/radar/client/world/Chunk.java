@@ -27,12 +27,6 @@ public class Chunk {
 	 */
 	private HashMap<Coord<Integer>, Cube> cubes;
 	
-	/**
-	 * TODO Possibly remove, uses data that is only used like once, or delete not sure
-	 * List of the cubes with at least one visible face
-	 */
-	private LinkedList<Cube> visibleCubes;
-	
 	
 	private LinkedList<Updateable> blockUpdates;
 	
@@ -88,7 +82,7 @@ public class Chunk {
 	 */
 	private volatile int numFaces = 0;
 	
-	ArrayList<Integer> availableSpace;
+	LinkedList<Integer> availableSpace;
 	
 	private int maxFaces;
 	
@@ -108,7 +102,7 @@ public class Chunk {
 		
 		blockUpdates = new LinkedList<>();
 		blocksToUpdate = new HashSet<>();
-		availableSpace = new ArrayList<>();
+		availableSpace = new LinkedList<>();
 		
 		facesToRemove = new LinkedList<>();
 		facesToAdd = new LinkedList<>();
@@ -119,32 +113,55 @@ public class Chunk {
 	
 	@SuppressWarnings("unchecked")
 	public void update(WorldGen gen, WindowUpdates window) {
-		boolean ran = false;
+		
+		HashSet<Coord<Integer>> blocksToUpdateC = (HashSet<Coord<Integer>>) blocksToUpdate.clone();
+		blocksToUpdate.clear();
+		
+		for(Coord<Integer> pos: blocksToUpdateC) {
+			if(cubes.containsKey(new Coord<Integer>(pos.getX()+16*x, pos.getY(), pos.getZ()+16*z))) {
+				blockUpdates.add((Updateable) cubes.get(new Coord<Integer>(pos.getX()+16*x, pos.getY(), pos.getZ()+16*z)));
+			}else {
+				System.out.println("Couldn't find "+pos.toString());
+			}
+		}
+		
 		LinkedList<Updateable> tempUpdates = (LinkedList<Updateable>) blockUpdates.clone();
 		blockUpdates.clear();
 		for (Updateable cube: tempUpdates) {
 			cube.update(window);
-			ran = true;
+
+			if(cube instanceof Fluid) {
+				Fluid fluid = (Fluid) cube;
+				fluid.facesNotVisible();
+				Coord<Integer> pos = fluid.getPos();
+				
+				int[] temp = cubes.get(new Coord<Integer>(pos.getX(),pos.getY(),pos.getZ())).remove();
+				
+				for (int i = 0; i < temp.length; i++) {
+					facesToRemove.add(temp[i]);
+				}
+				
+				Coord2D<Integer> rel = PointConversion.absoluteToRelative(new Coord2D<Integer>(pos.getX(), pos.getZ()));
+				updateCube(rel.getX(), pos.getY(), rel.getZ());
+			}
 		}
 		
-		//Clears old blocks and replaces them with new ones
-		//Allows blocks to be removed/added visually
-		if (ran) {
-			load(gen);
-			System.out.println("Chunk update");
-			update = true;
-		}
+//		//Clears old blocks and replaces them with new ones
+//		//Allows blocks to be removed/added visually
+//		if (ran) {
+//			load(gen);
+//			update = true;
+//		}
 		
 	}
 
 	/**
 	 * Called by the worldGen thread, used to do any intense processes,
-	 * before first render call, also called on block updates
+	 * before first render call, also called when resizing buffers
 	 */
 	public void load(WorldGen gen) {
 		//TODO Find a more precise way of finding number of blocks in a chunk or get a better guess
 		cubes = new HashMap<>(100);
-		visibleCubes = new LinkedList<>();
 		
 		ArrayList<ArrayList<ArrayList<Short>>> chunk = gen.getChunk(x, z);
 		
@@ -182,15 +199,28 @@ public class Chunk {
 		update = true;
 	}
 	
+	/**
+	 * Updates the visuals of the block in the chunk from a change in one position
+	 * used for block placement, removal, and some updates
+	 * @param x The x position of the block changed
+	 * @param y The y position of the block changed
+	 * @param z The z position of the block changed
+	 * @param gen The world generation used to find what changed
+	 */
 	public void load(int x, int y, int z, WorldGen gen) {
 		ArrayList<ArrayList<ArrayList<Short>>> chunk = gen.getChunk(this.x, this.z);
 		Coord2D<Integer> rel = PointConversion.absoluteToRelative(new Coord2D<Integer>(x, z));
 		
 		if(chunk.get(rel.getX()).get(rel.getZ()).size() <= y) {
+			System.out.println("Out of bounds load");
 			return;
 		}
 		
 		if (chunk.get(rel.getX()).get(rel.getZ()).get(y) == 0) {
+			if(!cubes.containsKey(new Coord<Integer>(x+16*this.x,y,z+16*this.z))) {
+				System.out.println("Cube not made");
+				return;
+			}
 			int[] temp = cubes.get(new Coord<Integer>(x+16*this.x,y,z+16*this.z)).remove();
 			
 			for (int i = 0; i < temp.length; i++) {
@@ -208,11 +238,12 @@ public class Chunk {
 			}else {
 				Fluid temp;
 				try {
-					temp = new Fluid(x,y,z, faceTextures[chunk.get(x).get(z).get(y)-1], gen.liquids.get(new Coord<Integer>(x, y, z)), gen);
+					temp = new Fluid(x+16*this.x,y,z+16*this.z, faceTextures[chunk.get(x).get(z).get(y)-1], gen.liquids.get(new Coord<Integer>(x+16*this.x,y,z+16*this.z)), gen);
 				}catch(Exception e){
-					temp = new Fluid(x,y,z, faceTextures[chunk.get(x).get(z).get(y)-1], 1, gen);
-				}
-				addCube(new Coord<Integer>(x,y,z), temp);
+					temp = new Fluid(x+16*this.x,y,z+16*this.z, faceTextures[chunk.get(x).get(z).get(y)-1], 1, gen);
+					gen.liquids.put(new Coord<Integer>(x+16*this.x,y,z+16*this.z), 1f);
+				}temp.facesNotVisible();
+				addCube(new Coord<Integer>(x+16*this.x,y,z+16*this.z), temp);
 			}
 			updateCube(rel.getX(),y,rel.getZ());
 		}
@@ -232,13 +263,14 @@ public class Chunk {
 			updateCube(x, y, z+1);
 			
 		}if (cubes.containsKey(new Coord<Integer>(x+16*this.x,y,z-1+16*this.z))) {
-			updateCube(x, y, z-1);
-			
+			updateCube(x, y, z-1);	
 		}
 	}
-	
 	public void updateCube(int x, int y, int z) {
 		Cube update = cubes.get(new Coord<Integer>(x + this.x*16,y,z + this.z*16));
+		if(update == null) {
+			return;
+		}
 		LinkedList<FaceUpdateData> in = update.renderUpdate();
 		for (FaceUpdateData curr: in) {
 			if (curr.getAction() == 1) {
@@ -278,7 +310,8 @@ public class Chunk {
 				delete(gl);
 				initBuffers(gl);
 				update = false;
-			}modifyBuffer(gl);
+			}
+			modifyBuffer(gl);
 			
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
 			gl.glTexCoordPointer(2, GL2.GL_FLOAT, 5*Buffers.SIZEOF_FLOAT, 3*Buffers.SIZEOF_FLOAT);
@@ -292,18 +325,41 @@ public class Chunk {
 	}
 	
 	private void modifyBuffer (GL2 gl) {
-//		if( facesToAdd.size() > 0 ) {
-//			System.out.println("Faces Added: "+facesToAdd.size()+" Faces Removed: "+facesToRemove.size());
-//		}
 		if(numFaces + facesToAdd.size() - facesToRemove.size() >= maxFaces) {
-			generateBufferArray();
-			deleteBuffers(gl);
-			initBuffers(gl);
+//			generateBufferArray();
+//			deleteBuffers(gl);
+//			initBuffers(gl);
+//			
+//			cubesToModify.clear();
+//			facesToAdd.clear();
+//			facesToRemove.clear();
+//			return;
+			maxFaces = maxFaces + EXTRA_FACES;
+			FloatBuffer vertexBuffer = Buffers.newDirectFloatBuffer(5 * 4 * maxFaces);
+			FloatBuffer normalBuffer = Buffers.newDirectFloatBuffer(3 * 4 * maxFaces);
 			
-			cubesToModify.clear();
-			facesToAdd.clear();
-			facesToRemove.clear();
-			return;
+			normalBuffer.put(normals);
+			normalBuffer.flip();
+			vertexBuffer.put(faceVerts);
+			vertexBuffer.flip();
+
+			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
+			gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 5 * (maxFaces), vertexBuffer, GL2.GL_DYNAMIC_DRAW);
+			
+			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, normalHandle[0]);
+			gl.glBufferData(GL2.GL_ARRAY_BUFFER, Buffers.SIZEOF_FLOAT * 4 * 3 * (maxFaces), normalBuffer, GL2.GL_DYNAMIC_DRAW);
+			float[] facevertscopy = new float[maxFaces*4*5];
+			float[] normalscopy = new float[maxFaces*4*3];
+			
+			for(int i = 0; i < (maxFaces - EXTRA_FACES)*4*5; i++) {
+				facevertscopy[i] = faceVerts[i];
+			}
+			for(int i = 0; i < (maxFaces - EXTRA_FACES)*4*3; i++) {
+				normalscopy[i] = normals[i];
+			}
+			
+			faceVerts = facevertscopy;
+			normals = normalscopy;
 		}
 		for (int i = 0; i < facesToAdd.size(); i++) {
 			FaceUpdateData face = facesToAdd.get(i);
@@ -331,6 +387,9 @@ public class Chunk {
 			if(!facesToRemove.isEmpty()) {
 				replace = facesToRemove.remove();
 				numFaces--;
+			}else if(!availableSpace.isEmpty()) {
+				replace = availableSpace.remove();
+				numFaces--;
 			}
 
 			cubesToModify.get(i).replaceId(face.getFaceID(), replace);
@@ -339,6 +398,9 @@ public class Chunk {
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
 			vertexBuffer.rewind();
 			gl.glBufferSubData(GL2.GL_ARRAY_BUFFER, replace*Buffers.SIZEOF_FLOAT*5*4, 5*4*Buffers.SIZEOF_FLOAT, vertexBuffer);
+			for(int t = 0; t < 5*4; t++) {
+				this.faceVerts[5*4*replace + t] = faceverts[t];
+			}
 
 			normalBuffer.put(normals);
 			//normalBuffer.flip();
@@ -348,6 +410,9 @@ public class Chunk {
 			numFaces++;
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
 
+			for(int t = 0; t < 3*4; t++) {
+				this.normals[3*4*replace + t] = normals[t];
+			}
 //			System.out.println("Num faces: "+numFaces+" Max faces: "+maxFaces+" Replaced Face: "+replace);
 			
 		}
@@ -369,11 +434,17 @@ public class Chunk {
 			FloatBuffer vertexBuffer = Buffers.newDirectFloatBuffer(5 * 4);
 			FloatBuffer normalBuffer = Buffers.newDirectFloatBuffer(3 * 4);
 			
+			availableSpace.add(facesToRemove.get(i));
+			
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vertexHandle[0]);
 			vertexBuffer.put(faceverts);
 			vertexBuffer.flip();
 			vertexBuffer.rewind();
 			gl.glBufferSubData(GL2.GL_ARRAY_BUFFER, facesToRemove.get(i)*Buffers.SIZEOF_FLOAT*4*5, 5*4*Buffers.SIZEOF_FLOAT, vertexBuffer);
+
+			for(int t = 0; t < 5*4; t++) {
+				this.faceVerts[5*4*facesToRemove.get(i) + t] = faceverts[t];
+			}
 			
 			normalBuffer.put(normals);
 			normalBuffer.flip();
@@ -381,6 +452,10 @@ public class Chunk {
 			normalBuffer.rewind();
 			gl.glBufferSubData(GL2.GL_ARRAY_BUFFER, facesToRemove.get(i)*Buffers.SIZEOF_FLOAT*4*3, 3*4*Buffers.SIZEOF_FLOAT, normalBuffer);
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
+			
+			for(int t = 0; t < 3*4; t++) {
+				this.normals[3*4*facesToRemove.get(i) + t] = normals[t];
+			}
 		}
 		
 		facesToRemove.clear();
@@ -390,7 +465,7 @@ public class Chunk {
 	 * Used to generate the array to be buffered on the GPU on the first call
 	 */
 	private void generateBufferArray() {
-		visibleCubes = new LinkedList<>();
+		LinkedList<Cube> visibleCubes = new LinkedList<>();
 		Byte[] cubeFacesNums = new Byte[cubes.size()];
 		int t = 0;
 		numFaces = 0;
@@ -472,7 +547,6 @@ public class Chunk {
 	public void delete(GL2 gl) {
 		deleteBuffers(gl);
 		cubes.clear();
-		visibleCubes.clear();
 	}
 
 	public void deleteBuffers(GL2 gl) {

@@ -225,7 +225,6 @@ public class WorldGen implements Runnable {
 		
 		if (current.get(relX).get(relZ).size() > Math.floor(y) && Math.floor(y) >= 0) {
 			current.get(relX).get(relZ).set((int) Math.floor(y), blockID);
-			System.out.println("Changed block "+x+" "+y+" "+z);
 		}
 	}
 	
@@ -274,6 +273,9 @@ public class WorldGen implements Runnable {
 										world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 3);
 									}
 									world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 1);
+									if(cubeX + cubeZ == 0 || cubeX + cubeZ == 1) {
+										world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 4);
+									}
 								}
 							}
 						}else if (Math.abs(currentX) < renderDist && Math.abs(currentZ) < renderDist) {

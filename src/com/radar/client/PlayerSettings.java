@@ -4,7 +4,7 @@ class PlayerSettings {
 	/**
 	 * Players starting/default movement speed
 	 */
-	protected static float defaultMovementSpeed = 0.14f;
+	protected static float defaultMovementSpeed = 0.12f;
 	
 	/**
 	 * Players mouse sensitivity

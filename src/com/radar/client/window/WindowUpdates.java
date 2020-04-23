@@ -88,8 +88,7 @@ public class WindowUpdates implements GLEventListener {
 	@Override
 	public void display(GLAutoDrawable drawable) {
 		long start = System.currentTimeMillis();
-//		Chunk[] tChunks = chunks.values().toArray(new Chunk[chunks.values().size()]);
-		if (start - lastTick > 100) {
+		if (start - lastTick > 2000) {
 //			new Thread(() -> {
 //				for (Chunk chunk: tChunks) {
 //					chunk.update(gen, this);
@@ -116,7 +115,6 @@ public class WindowUpdates implements GLEventListener {
 		gl.glLightf(GL2.GL_LIGHT0, GL2.GL_LINEAR_ATTENUATION, 0.03f);
 //		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {(float) Math.abs(0.5), (float) Math.abs(0.5), 0.0f, 0.0f}, 0);
 
-//		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {0, 0, 1, 0.0f}, 0);
 		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {0, 0f, 0f, 1.0f}, 0);
 		
 		player.render(gl);
@@ -124,7 +122,8 @@ public class WindowUpdates implements GLEventListener {
 	  	//Angle, verticle, horizontal
 		gl.glRotatef(player.getYRot(), 1f, 0f, 0f);
 		gl.glRotatef(player.getXRot(), 0f, 1f, 0f);
-		
+		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] {-1f, 1f, 1f, 0.0f}, 0);
+
 		
 		//Moving the world around the players coordinates
 		gl.glTranslatef(-player.getPos().getX(), -player.getPos().getY(), -player.getPos().getZ());
@@ -138,11 +137,11 @@ public class WindowUpdates implements GLEventListener {
 		gl.glEnableClientState(GL2.GL_NORMAL_ARRAY);
 		
 		//Setting material properties for all the cubes
-        gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, new float[] {0.8f, 0.8f, 0.8f, 1.0f}, 0);
+        gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, new float[] {0.5f, 0.5f, 0.5f, 1.0f}, 0);
         gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_SPECULAR, new float[] {0.1f, 0.1f, 0.1f, 1.0f}, 0);
-		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, new float[] {0.1f, 0.1f, 0.1f, 1.0f}, 0);
-		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, new float[] {0.04f, 0.04f, 0.04f, 0.0f}, 0);
-        gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, 0.0f);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, new float[] {0.5f, 0.5f, 0.5f, 1.0f}, 0);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, new float[] {0.0f, 0.0f, 0.0f, 0.0f}, 0);
+//        gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, 100.0f);
 
 		for (Chunk chunk: chunks.values()) {
 			chunk.render(gl);

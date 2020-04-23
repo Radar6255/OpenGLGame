@@ -25,16 +25,6 @@ import com.radar.common.Protocol;
 
 public class Player implements KeyListener, MouseListener, Protocol{
 	
-	
-//	private final static float[][] verts = new float[][] {
-//		{0.51f, 0.51f, 0.51f}, {0.51f, -0.51f, 0.51f}, {-0.51f, -0.51f, 0.51f}, {-0.51f, 0.51f, 0.51f},
-//		{0.51f, 0.51f, -0.51f}, {0.51f, -0.51f, -0.51f}, {-0.51f, -0.51f, -0.51f}, {-0.51f, 0.51f, -0.51f},
-//		{0.51f, 0.51f, 0.51f}, {0.51f, -0.51f, 0.51f}, {0.51f, -0.51f, -0.51f}, {0.51f, 0.51f, -0.51f},
-//		{-0.51f, 0.51f, 0.51f}, {-0.51f, -0.51f, 0.51f}, {-0.51f, -0.51f, -0.51f}, {-0.51f, 0.51f, -0.51f},
-//		{0.51f, 0.51f, 0.51f}, {-0.51f, 0.51f, 0.51f}, {-0.51f, 0.51f, -0.51f}, {0.51f, 0.51f, -0.51f},
-//		{0.51f, -0.51f, 0.51f}, {-0.51f, -0.51f, 0.51f}, {-0.51f, -0.51f, -0.51f}, {0.51f, -0.51f, -0.51f}
-//	};
-	
 	private final static float[][] verts = new float[][] {
 		{0.5f, 0.5f, 0.5f, 1, 1}, {0.5f, -0.5f, 0.5f, 1, 0}, {-0.5f, -0.5f, 0.5f, 0, 0}, {-0.5f, 0.5f, 0.5f, 0, 1},
 		{0.5f, 0.5f, -0.5f, 1, 1}, {0.5f, -0.5f, -0.5f, 1, 0}, {-0.5f, -0.5f, -0.5f, 0, 0}, {-0.5f, 0.5f, -0.5f, 0, 1},
@@ -231,6 +221,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 		yChange = velocity.getY();
 		zChange = velocity.getZ();
 		
+
 		pos.setX(pos.getX() + velocity.getX());
 		pos.setY(pos.getY() + velocity.getY());
 		pos.setZ(pos.getZ() + velocity.getZ());
@@ -249,8 +240,10 @@ public class Player implements KeyListener, MouseListener, Protocol{
 		}else {
 			velocity.setZ(velocity.getZ()-0.5f*velocity.getZ());
 		}
-		
+
 		collision(xChange, yChange, zChange, window);
+		
+//		collision(xChange, yChange, zChange, window);
 		
 		if (breakB) {
 			breakBlock(window);
@@ -604,19 +597,6 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			Coord<Integer> collisionPoint = pointCollision(cx, cy, cz, current);
 			if (collisionPoint != null) {
 				if (current.get(collisionPoint.getX()).get(collisionPoint.getZ()).size() > collisionPoint.getY() && collisionPoint.getY() > 0 && current.get(collisionPoint.getX()).get(collisionPoint.getZ()).get(collisionPoint.getY()) != 0){
-					int relX = (int) cx % 16;
-					int relZ = (int) cz % 16;
-					
-					if (cx < 0) {
-						relX = (int) (15 - (Math.abs(1+cx) % 16));
-					}else {
-						relX = (int) cx % 16;
-					}
-					if (cz < 0) {
-						relZ = (int) (15 - (Math.abs(1+cz) % 16));
-					}else {
-						relZ = (int) cz % 16;
-					}
 					current.get(collisionPoint.getX()).get(collisionPoint.getZ()).set(collisionPoint.getY(), (short) 0);
 
 					cy = collisionPoint.getY();
@@ -630,15 +610,15 @@ public class Player implements KeyListener, MouseListener, Protocol{
 						window.getChunk(chunkX, chunkZ).load(collisionPoint.getX(), collisionPoint.getY(), collisionPoint.getZ(), worldGen);
 						//Updating adjacent chunks if neccessary
 						if ((int) Math.floor(collisionPoint.getX()) == 15) {
-							window.getChunk(chunkX+1, chunkZ).load(0, (int) cy, relZ, worldGen);
+							window.getChunk(chunkX+1, chunkZ).updateCube(0, (int) cy, collisionPoint.getZ());
 						}else if ((int) Math.floor(collisionPoint.getX()) == 0) {
-							window.getChunk(chunkX-1, chunkZ).load(15, (int) cy, relZ, worldGen);
+							window.getChunk(chunkX-1, chunkZ).updateCube(15, (int) cy, collisionPoint.getZ());
 						}
 						
 						if ((int) Math.floor(collisionPoint.getZ()) == 15) {
-							window.getChunk(chunkX, chunkZ+1).load(relX, (int) cy, 0, worldGen);
+							window.getChunk(chunkX, chunkZ+1).updateCube(collisionPoint.getX(), (int) cy, 0);
 						}else if ((int) Math.floor(collisionPoint.getZ()) == 0) {
-							window.getChunk(chunkX, chunkZ-1).load(relX, (int) cy, 15, worldGen);
+							window.getChunk(chunkX, chunkZ-1).updateCube(collisionPoint.getX(), (int) cy, 15);
 						}
 						
 					}catch(Exception e) {
@@ -715,11 +695,9 @@ public class Player implements KeyListener, MouseListener, Protocol{
 					while (current.get(collisionPoint.getX()).get(collisionPoint.getZ()).size() <= collisionPoint.getY()) {
 						current.get(collisionPoint.getX()).get(collisionPoint.getZ()).add((short) 0);
 					}
-//					current.get(relX).get(relZ).set((int) Math.floor(cy), 1);
 					//TODO Get the current block in hand
-					current.get(collisionPoint.getX()).get(collisionPoint.getZ()).set((int) collisionPoint.getY(), (short) 1);
+					current.get(collisionPoint.getX()).get(collisionPoint.getZ()).set((int) collisionPoint.getY(), (short) 6);
 					
-					worldGen.liquids.put(new Coord<Integer>(collisionPoint.getX(),collisionPoint.getY(),(int) collisionPoint.getZ()), 1f);
 					window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>(collisionPoint.getX(),collisionPoint.getY(),collisionPoint.getZ()));
 					if (Game.MULTIPLAYER) {
 						out.println(BLOCK_UPDATE+" "+(int) cx+" "+(int) cy+" "+(int) cz+" 1");
@@ -731,16 +709,17 @@ public class Player implements KeyListener, MouseListener, Protocol{
 //						window.getChunk(chunkX, chunkZ).load(relX, (int) cy, relZ, worldGen);
 						//Updating adjacent chunks if neccessary
 						if ((int) Math.floor(collisionPoint.getX()) == 15) {
-							window.getChunk(chunkX+1, chunkZ).load(relX, (int) cy, relZ, worldGen);
-						}if ((int) Math.floor(collisionPoint.getX()) == 15) {
-							window.getChunk(chunkX, chunkZ+1).load(relX, (int) cy, relZ, worldGen);
-						}if ((int) Math.floor(collisionPoint.getX()) == 0) {
-							window.getChunk(chunkX-1, chunkZ).load(relX, (int) cy, relZ, worldGen);
-						}if ((int) Math.floor(collisionPoint.getX()) == 0) {
-							window.getChunk(chunkX, chunkZ-1).load(relX, (int) cy, relZ, worldGen);
+							window.getChunk(chunkX+1, chunkZ).updateCube(0, (int) cy, collisionPoint.getZ());
+						}if ((int) Math.floor(collisionPoint.getZ()) == 15) {
+							window.getChunk(chunkX, chunkZ+1).updateCube(collisionPoint.getX(), (int) cy, 0);
+						}
+						if ((int) Math.floor(collisionPoint.getX()) == 0) {
+							window.getChunk(chunkX-1, chunkZ).updateCube(15, (int) cy, collisionPoint.getZ());
+						}if ((int) Math.floor(collisionPoint.getZ()) == 0) {
+							window.getChunk(chunkX, chunkZ-1).updateCube(collisionPoint.getX(), (int) cy, 15);
 						}
 					}catch(Exception e) {
-						System.out.println("Placed block out of viewing range");
+						System.out.println("Bah "+e.getMessage());
 					}
 					place = false;
 					break;
@@ -825,6 +804,9 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			}else {
 				pause = true;
 			}
+			break;
+		case KeyEvent.VK_P:
+			System.out.println("Player Position: "+pos.getX()+" "+pos.getY()+" "+pos.getZ());
 			break;
 		}
 	}
