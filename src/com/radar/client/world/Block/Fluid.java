@@ -92,7 +92,6 @@ public class Fluid extends Cube implements Updateable{
 			return;
 		}
 		
-		
 		if (relX-1 >= 0) {
 			if (currentChunk.get(relX-1).get(relZ).size() > coords.getY()) {
 				if (currentChunk.get(relX-1).get(relZ).get(coords.getY()) == 0) {

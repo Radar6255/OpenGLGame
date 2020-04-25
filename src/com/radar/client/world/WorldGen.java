@@ -166,7 +166,10 @@ public class WorldGen implements Runnable {
 	 * @param chunkZ The chunk the block is in z's position
 	 * @return The blockID at that position, or -1 if invalid y position
 	 */
-	public int getBlock(float x, float y, float z, int chunkX, int chunkZ) {
+	public int getBlock(float x, float y, float z) {
+		int chunkX = (int) Math.floor(Math.floor(x)/16.0);
+		int chunkZ = (int) Math.floor(Math.floor(z)/16.0);
+		
 		ArrayList<ArrayList<ArrayList<Short>>> current = getChunk(chunkX, chunkZ);
 		
 		if (current == null) {
@@ -189,9 +192,8 @@ public class WorldGen implements Runnable {
 		
 		if (current.get(relX).get(relZ).size() > Math.floor(y) && Math.floor(y) >= 0) {
 			return current.get(relX).get(relZ).get((int) Math.floor(y));
-		}else {
-			return -1;
 		}
+		return -1;
 	}
 	
 	/**

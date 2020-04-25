@@ -217,33 +217,29 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			velocity.setZ(-0.2f);
 		}
 		
+		pos.setX(pos.getX() + velocity.getX());
+		pos.setY(pos.getY() + velocity.getY());
+		pos.setZ(pos.getZ() + velocity.getZ());
+
 		xChange = velocity.getX();
 		yChange = velocity.getY();
 		zChange = velocity.getZ();
 		
-
-		pos.setX(pos.getX() + velocity.getX());
-		pos.setY(pos.getY() + velocity.getY());
-		pos.setZ(pos.getZ() + velocity.getZ());
-		
 		//X Friction
-		if (velocity.getX() > 0) {
+		if (Math.abs(velocity.getX()) > 0) {
 			velocity.setX(velocity.getX()-0.5f*velocity.getX());
 		}else {
-			velocity.setX(velocity.getX()-0.5f*velocity.getX());
+//			velocity.setX(velocity.getX()-0.5f*velocity.getX());
 		}
-		
 		
 		//Z Friction
-		if (velocity.getZ() > 0) {
+		if (Math.abs(velocity.getZ()) > 0) {
 			velocity.setZ(velocity.getZ()-0.5f*velocity.getZ());
 		}else {
-			velocity.setZ(velocity.getZ()-0.5f*velocity.getZ());
+//			velocity.setZ(velocity.getZ()-0.5f*velocity.getZ());
 		}
-
-		collision(xChange, yChange, zChange, window);
 		
-//		collision(xChange, yChange, zChange, window);
+		collision(xChange, yChange, zChange, window);
 		
 		if (breakB) {
 			breakBlock(window);
@@ -442,14 +438,11 @@ public class Player implements KeyListener, MouseListener, Protocol{
 	//				zOff += playerSize;
 				}
 				
-				int chunkX = (int) Math.floor(Math.floor(pos.getX()+xOff)/16.0);
-				int chunkZ = (int) Math.floor(Math.floor(pos.getZ()+zOff)/16.0);
-				
 	//			ArrayList<ArrayList<ArrayList<Integer>>> current = worldGen.getChunk(chunkX, chunkZ);
 				//TODO Causes random out of bounds errors even after checking that it would be in bounds
-				if ((worldGen.getBlock(pos.getX()+xOff, (float) Math.floor(pos.getY()-1-yChange), pos.getZ()+zOff, chunkX, chunkZ) != 0 && worldGen.getBlock(pos.getX()+xOff, (float) Math.floor(pos.getY()-1-yChange), pos.getZ()+zOff, chunkX, chunkZ) != -1)
-						|| (worldGen.getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-yChange), pos.getZ()+zOff, chunkX, chunkZ) != 0 && worldGen.getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-yChange), pos.getZ()+zOff, chunkX, chunkZ) != -1)
-						|| (worldGen.getBlock(pos.getX()+xOff, Math.round(pos.getY()-0.5-yChange), pos.getZ()+zOff, chunkX, chunkZ) != 0 && worldGen.getBlock(pos.getX()+xOff, Math.round(pos.getY()-0.5-yChange), pos.getZ()+zOff, chunkX, chunkZ) != -1)) {
+				if ((worldGen.getBlock(pos.getX()+xOff, (float) Math.floor(roundFloat(pos.getY()-1-yChange)), pos.getZ()+zOff) != 0 && worldGen.getBlock(pos.getX()+xOff, (float) Math.floor(roundFloat(pos.getY()-1-yChange)), pos.getZ()+zOff) != -1)
+						|| (worldGen.getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-yChange), pos.getZ()+zOff) != 0 && worldGen.getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-yChange), pos.getZ()+zOff) != -1)
+						|| (worldGen.getBlock(pos.getX()+xOff, Math.round(pos.getY()-0.5-yChange), pos.getZ()+zOff) != 0 && worldGen.getBlock(pos.getX()+xOff, Math.round(pos.getY()-0.5-yChange), pos.getZ()+zOff) != -1)) {
 					//Check if there is a collision
 					if ((pos.getX()-(1-playerSize) > Math.floor(pos.getX()+xOff)-1 && pos.getX()+(1-playerSize) < Math.floor(pos.getX()+xOff)+1) && (pos.getZ()-(1-playerSize) > Math.floor(pos.getZ()+zOff)-1 && pos.getZ()+(1-playerSize) < Math.floor(pos.getZ()+zOff)+1)) {
 						if (pos.getX()-(1-playerSize) > Math.floor(pos.getX()+xOff)-1 && roundFloat(pos.getX()-xChange-(1-playerSize)) <= (float) Math.floor(pos.getX()+xOff)-1) {
@@ -499,24 +492,26 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			}if (i >= 2) {
 				zOff += playerSize;
 			}
-			int chunkX = (int) Math.floor(Math.floor(pos.getX()+xOff)/16.0);
-			int chunkZ = (int) Math.floor(Math.floor(pos.getZ()+zOff)/16.0);
+//			int chunkX = (int) Math.floor(Math.floor(pos.getX()+xOff)/16.0);
+//			int chunkZ = (int) Math.floor(Math.floor(pos.getZ()+zOff)/16.0);
 			
-//			ArrayList<ArrayList<ArrayList<Integer>>> current = worldGen.getChunk(chunkX, chunkZ);
+//			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.getChunk(chunkX, chunkZ);
 			
-			if (worldGen.getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-2), pos.getZ()+zOff, chunkX, chunkZ) != 0 && worldGen.getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-2), pos.getZ()+zOff, chunkX, chunkZ) != -1) {
+			if (worldGen.getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-2), pos.getZ()+zOff) != 0 && worldGen.getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-2), pos.getZ()+zOff) != -1) {
 //			if (current.get(relX).get(relZ).size() > Math.ceil(pos.getY()-2) && Math.ceil(pos.getY()-2) >= 0 && current.get(relX).get(relZ).get((int) Math.ceil(pos.getY()-2)) != 0) {
 				//For debugging, shows where collision checks are made
-//				if (current.get(relX).get(relZ).get((int) Math.ceil(pos.getY()-2)) != 4) {
-//					current.get(relX).get(relZ).set((int) Math.ceil(pos.getY()-2), 4);
-//					window.getChunk(chunkX, chunkZ).update(worldGen);
+//				Coord2D<Integer> rel = PointConversion.absoluteToRelative(new Coord2D<Integer>((int) Math.floor(pos.getX()+xOff), (int) Math.floor(pos.getZ()+zOff)));
+//				if (current.get(rel.getX()).get(rel.getZ()).get((int) Math.ceil(pos.getY()-2)) != 4) {
+//					current.get(rel.getX()).get(rel.getZ()).set((int) Math.ceil(pos.getY()-2), (short) 4);
+//					window.getChunk(chunkX, chunkZ).load(rel.getX(), (int) Math.ceil(pos.getY()-2), rel.getZ(), worldGen);
 //				}
 				if (pos.getX()-(1-playerSize) > Math.floor(pos.getX()+xOff)-1 && pos.getX()+(1-playerSize) < Math.floor(pos.getX()+xOff)+1
 						&& pos.getZ()-(1-playerSize) > Math.floor(pos.getZ()+zOff)-1 && pos.getZ()+(1-playerSize) < Math.floor(pos.getZ()+zOff)+1) {
-					if (Math.ceil(pos.getY()-2) <= pos.getY()-2-yChange) {
+					if (Math.ceil(pos.getY()-2) <= roundFloat(pos.getY()-2-yChange)) {
 						velocity.setY(0f);
 						pos.setY((float) Math.ceil(pos.getY()));
 						jump = true;
+						break;
 					}
 				}
 			}

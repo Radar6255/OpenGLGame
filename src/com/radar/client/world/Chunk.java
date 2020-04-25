@@ -142,6 +142,7 @@ public class Chunk {
 				}
 				
 				Coord2D<Integer> rel = PointConversion.absoluteToRelative(new Coord2D<Integer>(pos.getX(), pos.getZ()));
+				System.out.println(rel.getX()+" "+rel.getZ());
 				updateCube(rel.getX(), pos.getY(), rel.getZ());
 			}
 		}
@@ -326,14 +327,6 @@ public class Chunk {
 	
 	private void modifyBuffer (GL2 gl) {
 		if(numFaces + facesToAdd.size() - facesToRemove.size() >= maxFaces) {
-//			generateBufferArray();
-//			deleteBuffers(gl);
-//			initBuffers(gl);
-//			
-//			cubesToModify.clear();
-//			facesToAdd.clear();
-//			facesToRemove.clear();
-//			return;
 			maxFaces = maxFaces + EXTRA_FACES;
 			FloatBuffer vertexBuffer = Buffers.newDirectFloatBuffer(5 * 4 * maxFaces);
 			FloatBuffer normalBuffer = Buffers.newDirectFloatBuffer(3 * 4 * maxFaces);
