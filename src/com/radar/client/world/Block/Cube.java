@@ -159,6 +159,16 @@ public abstract class Cube {
 	
 	public void facesNotVisible() {
 		visibleFaces = new boolean[] {false, false, false, false, false, false};
+		numVisibleFaces = 0;
+	}
+	
+	@Override
+	public boolean equals(Object o) {
+		if(o instanceof Cube) {
+			Cube cube = (Cube) o;
+			return cube.coords.equals(this.coords);
+		}
+		return false;
 	}
 	
 	//TODO Make so that renderUpdate also changes numVisibleFaces
@@ -356,6 +366,7 @@ public abstract class Cube {
 	}
 	
 	public int[] remove() {
+//		System.out.println();
 		int[] out = new int[numVisibleFaces];
 		int temp = 0;
 		for (int i = 0; i < 6; i++) {
@@ -363,6 +374,7 @@ public abstract class Cube {
 				out[temp] = faceIDs[i];
 				temp++;
 			}
-		}return out;
+		}
+		return out;
 	}
 }

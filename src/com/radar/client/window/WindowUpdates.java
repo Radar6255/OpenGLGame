@@ -8,17 +8,19 @@ import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.glu.GLU;
 import com.radar.client.Player;
+import com.radar.client.world.BlockUpdateHandler;
 import com.radar.client.world.Chunk;
 import com.radar.client.world.Coord2D;
 import com.radar.client.world.TextureMap;
 import com.radar.client.world.WorldGen;
+import com.radar.client.world.Block.Cube;
+import com.radar.client.world.Block.Updateable;
 
 /**
  * @author radar
  * Class to handle any window updates that happen
  */
 public class WindowUpdates implements GLEventListener {
-	
 	/**
 	 * List of all chunks rendering for this player
 	 */
@@ -72,6 +74,7 @@ public class WindowUpdates implements GLEventListener {
 	
 	long renderTimeMax = 0;
 	
+	private BlockUpdateHandler blockUpdater;
 	/**
 	 * Creates a controller for the windows updates
 	 * @param player The player this window updater is for
@@ -80,8 +83,17 @@ public class WindowUpdates implements GLEventListener {
 	public WindowUpdates(Player player, GameWindow window) {
 		this.player = player;
 		this.window = window;
+		blockUpdater = new BlockUpdateHandler();
 		chunks = new HashMap<Coord2D<Integer>,Chunk>();
 		chunkQueue = new LinkedList<Chunk>();
+	}
+	
+	public void addUpdate(Updateable update) {
+		blockUpdater.addUpdate(update);
+	}
+	
+	public void removeCubeUpdate(Cube remove) {
+		blockUpdater.removeCubeUpdate(remove);
 	}
 	
 	//Contains any draw calls
@@ -94,9 +106,7 @@ public class WindowUpdates implements GLEventListener {
 //					chunk.update(gen, this);
 //				}
 //			}).start();
-			for (Chunk chunk: chunks.values()) {
-				chunk.update(gen, this);
-			}
+			blockUpdater.update(this);
 			lastTick = System.currentTimeMillis();
 		}
 		
@@ -268,6 +278,15 @@ public class WindowUpdates implements GLEventListener {
 	 */
 	public Chunk getChunk(int chunkX, int chunkZ) {
 		return chunks.get(new Coord2D<Integer>(chunkX, chunkZ));
+	}
+	
+	/**
+	 * Gets the visible chunk at a location
+	 * @param chunkPos A Coord2D<Integer> of where the chunk is
+	 * @return The chunk object at that location
+	 */
+	public Chunk getChunk(Coord2D<Integer> chunkPos) {
+		return chunks.get(new Coord2D<Integer>(chunkPos.getX(), chunkPos.getZ()));
 	}
 	
 	/**

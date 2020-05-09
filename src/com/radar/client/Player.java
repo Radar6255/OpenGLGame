@@ -39,6 +39,11 @@ public class Player implements KeyListener, MouseListener, Protocol{
 	private Coord<Float> pos;
 	
 	/**
+	 * Block ID of the block to place
+	 */
+	private short currentlyPlacing = 1;
+	
+	/**
 	 * Velocity of the player
 	 */
 	private Coord<Float> velocity;
@@ -592,6 +597,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			Coord<Integer> collisionPoint = pointCollision(cx, cy, cz, current);
 			if (collisionPoint != null) {
 				if (current.get(collisionPoint.getX()).get(collisionPoint.getZ()).size() > collisionPoint.getY() && collisionPoint.getY() > 0 && current.get(collisionPoint.getX()).get(collisionPoint.getZ()).get(collisionPoint.getY()) != 0){
+//					if(current.get(index))
 					current.get(collisionPoint.getX()).get(collisionPoint.getZ()).set(collisionPoint.getY(), (short) 0);
 
 					cy = collisionPoint.getY();
@@ -601,19 +607,22 @@ public class Player implements KeyListener, MouseListener, Protocol{
 					}
 					worldGen.editedChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
 					try {
-//						window.getChunk(chunkX, chunkZ).load(relX, (int) cy, relZ, worldGen);
+						if(worldGen.liquids.containsKey(new Coord<Integer>(collisionPoint.getX()+16*chunkX,collisionPoint.getY(),collisionPoint.getZ()+16*chunkZ))) {
+							System.out.println("Removed "+worldGen.liquids.get(new Coord<Integer>(collisionPoint.getX()+16*chunkX,collisionPoint.getY(),collisionPoint.getZ()+16*chunkZ)));
+						}
+						worldGen.liquids.remove(new Coord<Integer>(collisionPoint.getX()+16*chunkX,collisionPoint.getY(),collisionPoint.getZ()+16*chunkZ));
 						window.getChunk(chunkX, chunkZ).load(collisionPoint.getX(), collisionPoint.getY(), collisionPoint.getZ(), worldGen);
 						//Updating adjacent chunks if neccessary
 						if ((int) Math.floor(collisionPoint.getX()) == 15) {
-							window.getChunk(chunkX+1, chunkZ).updateCube(0, (int) cy, collisionPoint.getZ());
+							window.getChunk(chunkX+1, chunkZ).renderUpdateCube(0, (int) cy, collisionPoint.getZ());
 						}else if ((int) Math.floor(collisionPoint.getX()) == 0) {
-							window.getChunk(chunkX-1, chunkZ).updateCube(15, (int) cy, collisionPoint.getZ());
+							window.getChunk(chunkX-1, chunkZ).renderUpdateCube(15, (int) cy, collisionPoint.getZ());
 						}
 						
 						if ((int) Math.floor(collisionPoint.getZ()) == 15) {
-							window.getChunk(chunkX, chunkZ+1).updateCube(collisionPoint.getX(), (int) cy, 0);
+							window.getChunk(chunkX, chunkZ+1).renderUpdateCube(collisionPoint.getX(), (int) cy, 0);
 						}else if ((int) Math.floor(collisionPoint.getZ()) == 0) {
-							window.getChunk(chunkX, chunkZ-1).updateCube(collisionPoint.getX(), (int) cy, 15);
+							window.getChunk(chunkX, chunkZ-1).renderUpdateCube(collisionPoint.getX(), (int) cy, 15);
 						}
 						
 					}catch(Exception e) {
@@ -690,10 +699,8 @@ public class Player implements KeyListener, MouseListener, Protocol{
 					while (current.get(collisionPoint.getX()).get(collisionPoint.getZ()).size() <= collisionPoint.getY()) {
 						current.get(collisionPoint.getX()).get(collisionPoint.getZ()).add((short) 0);
 					}
-					//TODO Get the current block in hand
-					current.get(collisionPoint.getX()).get(collisionPoint.getZ()).set((int) collisionPoint.getY(), (short) 6);
+					current.get(collisionPoint.getX()).get(collisionPoint.getZ()).set((int) collisionPoint.getY(), currentlyPlacing);
 					
-					window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>(collisionPoint.getX(),collisionPoint.getY(),collisionPoint.getZ()));
 					if (Game.MULTIPLAYER) {
 						out.println(BLOCK_UPDATE+" "+(int) cx+" "+(int) cy+" "+(int) cz+" 1");
 					}
@@ -701,17 +708,19 @@ public class Player implements KeyListener, MouseListener, Protocol{
 					try {
 						cy = collisionPoint.getY();
 						window.getChunk(chunkX, chunkZ).load(relX, (int) collisionPoint.getY(), relZ, worldGen);
+						if(currentlyPlacing == 6)
+							window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(collisionPoint.getX(),collisionPoint.getY(),collisionPoint.getZ()));
 //						window.getChunk(chunkX, chunkZ).load(relX, (int) cy, relZ, worldGen);
 						//Updating adjacent chunks if neccessary
 						if ((int) Math.floor(collisionPoint.getX()) == 15) {
-							window.getChunk(chunkX+1, chunkZ).updateCube(0, (int) cy, collisionPoint.getZ());
+							window.getChunk(chunkX+1, chunkZ).renderUpdateCube(0, (int) cy, collisionPoint.getZ());
 						}if ((int) Math.floor(collisionPoint.getZ()) == 15) {
-							window.getChunk(chunkX, chunkZ+1).updateCube(collisionPoint.getX(), (int) cy, 0);
+							window.getChunk(chunkX, chunkZ+1).renderUpdateCube(collisionPoint.getX(), (int) cy, 0);
 						}
 						if ((int) Math.floor(collisionPoint.getX()) == 0) {
-							window.getChunk(chunkX-1, chunkZ).updateCube(15, (int) cy, collisionPoint.getZ());
+							window.getChunk(chunkX-1, chunkZ).renderUpdateCube(15, (int) cy, collisionPoint.getZ());
 						}if ((int) Math.floor(collisionPoint.getZ()) == 0) {
-							window.getChunk(chunkX, chunkZ-1).updateCube(collisionPoint.getX(), (int) cy, 15);
+							window.getChunk(chunkX, chunkZ-1).renderUpdateCube(collisionPoint.getX(), (int) cy, 15);
 						}
 					}catch(Exception e) {
 						System.out.println("Bah "+e.getMessage());
@@ -768,6 +777,24 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			break;
 		case KeyEvent.VK_SHIFT:
 			shift = true;
+			break;
+		case KeyEvent.VK_1:
+			currentlyPlacing = 1;
+			break;
+		case KeyEvent.VK_2:
+			currentlyPlacing = 2;
+			break;
+		case KeyEvent.VK_3:
+			currentlyPlacing = 3;
+			break;
+		case KeyEvent.VK_4:
+			currentlyPlacing = 4;
+			break;
+		case KeyEvent.VK_5:
+			currentlyPlacing = 5;
+			break;
+		case KeyEvent.VK_6:
+			currentlyPlacing = 6;
 			break;
 		}
 	}

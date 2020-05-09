@@ -43,6 +43,7 @@ public class Coord2D<E> {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
+		@SuppressWarnings("unchecked")
 		Coord2D<E> other = (Coord2D<E>) obj;
 		if (x == null) {
 			if (other.x != null)

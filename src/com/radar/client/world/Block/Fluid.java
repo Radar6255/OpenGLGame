@@ -4,7 +4,9 @@ import java.util.ArrayList;
 
 import com.radar.client.window.WindowUpdates;
 import com.radar.client.world.Coord;
+import com.radar.client.world.Coord2D;
 import com.radar.client.world.WorldGen;
+import com.radar.common.PointConversion;
 
 public class Fluid extends Cube implements Updateable{
 	
@@ -22,6 +24,10 @@ public class Fluid extends Cube implements Updateable{
 	
 	private float height = 1;
 	
+	private int priority = 0;
+	
+	private int stable = 0;
+	
 	/**
 	 * Creates a fluid with specified height at x, y, z location
 	 * 
@@ -34,8 +40,7 @@ public class Fluid extends Cube implements Updateable{
 	 */
 	public Fluid(int x, int y, int z, short[] faceTextures, float height, WorldGen gen) {
 		super(x, y, z, faceTextures, gen);
-		this.height = height;
-		changeHeight(height);
+		setHeight(height);
 		super.setVerticies(verts);
 		
 	}
@@ -48,21 +53,38 @@ public class Fluid extends Cube implements Updateable{
 	 * Sets the fluid's height
 	 * @param height The height to set it to
 	 */
-	public void changeHeight(float height) {
+	public void changeHeight() {
+		verts = new float[][] {
+			{0.5f, 0.5f, 0.5f, 1, 1}, {0.5f, -0.5f, 0.5f, 1, 0}, {-0.5f, -0.5f, 0.5f, 0, 0}, {-0.5f, 0.5f, 0.5f, 0, 1},
+			{0.5f, 0.5f, -0.5f, 1, 1}, {0.5f, -0.5f, -0.5f, 1, 0}, {-0.5f, -0.5f, -0.5f, 0, 0}, {-0.5f, 0.5f, -0.5f, 0, 1},
+			{0.5f, 0.5f, 0.5f, 1, 1}, {0.5f, -0.5f, 0.5f, 1, 0}, {0.5f, -0.5f, -0.5f, 0, 0}, {0.5f, 0.5f, -0.5f, 0, 1},
+			{-0.5f, 0.5f, 0.5f, 1, 1}, {-0.5f, -0.5f, 0.5f, 1, 0}, {-0.5f, -0.5f, -0.5f, 0, 0}, {-0.5f, 0.5f, -0.5f, 0, 1},
+			{0.5f, 0.5f, 0.5f, 0, 0}, {-0.5f, 0.5f, 0.5f, 0, 1}, {-0.5f, 0.5f, -0.5f, 1, 1}, {0.5f, 0.5f, -0.5f, 1, 0},
+			{0.5f, -0.5f, 0.5f, 0, 0}, {-0.5f, -0.5f, 0.5f, 0, 1}, {-0.5f, -0.5f, -0.5f, 1, 1}, {0.5f, -0.5f, -0.5f, 1, 0}
+		};
 		for (int p = 0; p < 24; p++) {
 			verts[p][1] = ((verts[p][1] + 0.5f)*height)-0.5f;
 		}
+		super.setVerticies(verts);
 	}
 	
 	public Coord<Integer> getPos(){
 		return this.coords;
 	}
 	
+	public void setHeight(float height) {
+		this.height = roundFloat(height);
+		changeHeight();
+	}
+	
 	public void update(WindowUpdates window) {
+		if(stable > 3) {
+			return;
+		}
 		byte spaceSpread = 1;
 		float waterSum = 0;
 		int chunkX, chunkZ;
-		
+
 		chunkX = (int) Math.floor(coords.getX()/16.0);
 		chunkZ = (int) Math.floor(coords.getZ()/16.0);
 		
@@ -70,26 +92,57 @@ public class Fluid extends Cube implements Updateable{
 		ArrayList<ArrayList<ArrayList<Short>>> adjacentChunk;
 		
 		//Finding this cubes position relative to the corner of the chunk it is in
-		int relX, relZ;
-		if (coords.getX() < 0) {
-			relX = (byte) (15 - (Math.abs(coords.getX()+1) % 16));
-		}else {
-			relX = (byte) (Math.abs(coords.getX()) % 16);
-		}
-		if (coords.getZ() < 0) {
-			relZ = (byte) (15 - (Math.abs(coords.getZ()+1) % 16));
-		}else {
-			relZ = (byte) (Math.abs(coords.getZ()) % 16);
-		}
+		Coord2D<Integer> relatives = PointConversion.absoluteToRelative(coords);
+		int relX = relatives.getX();
+		int relZ = relatives.getZ();
 		
 		if (!gen.liquids.containsKey(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()))) {
 			gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()), height);
+		}else if(gen.liquids.get(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ())) != height) {
+			setHeight(gen.liquids.get(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ())));
 		}
 		
-		if (coords.getY() > 1 && currentChunk.get(relX).get(relZ).get(coords.getY()-1) == 0) {
-			window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ()));
-			gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ()), height);
+		if (height < 0.03) {
+			currentChunk.get(relX).get(relZ).set(coords.getY(), (short) 0);
+			window.getChunk(chunkX, chunkZ).load(relX, coords.getY(), relZ, gen);
 			return;
+		}
+		
+		if (coords.getY() > 1) {
+			if(currentChunk.get(relX).get(relZ).get(coords.getY()-1) == 0) {
+				gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ()), height);
+				gen.liquids.remove(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()));
+				
+				currentChunk.get(relX).get(relZ).set(coords.getY(), (short) 0);
+				window.getChunk(chunkX, chunkZ).load(relX, coords.getY(), relZ, gen);
+				window.removeCubeUpdate(this);
+				
+				currentChunk.get(relX).get(relZ).set(coords.getY()-1, (short) 6);
+				window.getChunk(chunkX, chunkZ).load(relX, coords.getY()-1, relZ, gen);
+				window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX, coords.getY()-1, relZ));
+				return;
+			}else if(currentChunk.get(relX).get(relZ).get(coords.getY()-1) == 6) {
+				if(gen.liquids.get(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ())) + height >= 1){
+					gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ()), 1.0f);
+					
+					float newHeight = height + gen.liquids.get(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ())) - 1;
+					gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()), newHeight);
+					setHeight(newHeight);
+					
+					window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX, coords.getY()-1, relZ));
+					window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX, coords.getY(), relZ));
+					System.out.println("Partial fall "+height);
+					return;
+				}else {
+					currentChunk.get(relX).get(relZ).set(coords.getY(), (short) 0);
+					window.getChunk(chunkX, chunkZ).load(relX, coords.getY(), relZ, gen);
+					window.removeCubeUpdate(this);
+					
+					gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ()), height + gen.liquids.get(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ())));
+					window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX, coords.getY()-1, relZ));
+					return;
+				}
+			}
 		}
 		
 		if (relX-1 >= 0) {
@@ -98,6 +151,7 @@ public class Fluid extends Cube implements Updateable{
 					spaceSpread++;
 				}if (currentChunk.get(relX-1).get(relZ).get(coords.getY()) == 6) {
 					waterSum += gen.liquids.get(new Coord<Integer>(coords.getX()-1, coords.getY(), coords.getZ()));
+					spaceSpread++;
 				}
 			}
 		}else {
@@ -108,6 +162,7 @@ public class Fluid extends Cube implements Updateable{
 						spaceSpread++;
 					}if (adjacentChunk.get(15).get(relZ).get(coords.getY()) == 6) {
 						waterSum += gen.liquids.get(new Coord<Integer>(coords.getX()-1, coords.getY(), coords.getZ()));
+						spaceSpread++;
 					}
 				}
 			}
@@ -118,6 +173,7 @@ public class Fluid extends Cube implements Updateable{
 					spaceSpread++;
 				}if (currentChunk.get(relX).get(relZ-1).get(coords.getY()) == 6) {
 					waterSum += gen.liquids.get(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()-1));
+					spaceSpread++;
 				}
 			}
 		}else {
@@ -128,6 +184,7 @@ public class Fluid extends Cube implements Updateable{
 						spaceSpread++;
 					}if (adjacentChunk.get(relX).get(15).get(coords.getY()) == 6) {
 						waterSum += gen.liquids.get(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()-1));
+						spaceSpread++;
 					}
 				}
 			}
@@ -138,6 +195,7 @@ public class Fluid extends Cube implements Updateable{
 					spaceSpread++;
 				}if (currentChunk.get(relX+1).get(relZ).get(coords.getY()) == 6) {
 					waterSum += gen.liquids.get(new Coord<Integer>(coords.getX()+1, coords.getY(), coords.getZ()));
+					spaceSpread++;
 				}
 			}
 		}else {
@@ -148,6 +206,7 @@ public class Fluid extends Cube implements Updateable{
 						spaceSpread++;
 					}if (adjacentChunk.get(0).get(relZ).get(coords.getY()) == 6) {
 						waterSum += gen.liquids.get(new Coord<Integer>(coords.getX()+1, coords.getY(), coords.getZ()));
+						spaceSpread++;
 					}
 				}
 			}
@@ -158,6 +217,7 @@ public class Fluid extends Cube implements Updateable{
 					spaceSpread++;
 				}if (currentChunk.get(relX).get(relZ+1).get(coords.getY()) == 6) {
 					waterSum += gen.liquids.get(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()+1));
+					spaceSpread++;
 				}
 			}
 		}else {
@@ -168,19 +228,16 @@ public class Fluid extends Cube implements Updateable{
 						spaceSpread++;
 					}if (adjacentChunk.get(relX).get(0).get(coords.getY()) == 6) {
 						waterSum += gen.liquids.get(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()+1));
+						spaceSpread++;
 					}
 				}
 			}
 		}
-//		if (coords.getY()+1 < currentChunk.get(relX).get(relZ).size()) {
-//			if (currentChunk.get(relX).get(relZ).get(coords.getY()+1) == 0) {
-//				spaceSpread++;
-//			}
-//		}
+		
 		if (spaceSpread == 1) {
 			return;
 		}
-		float spreadHeight = (waterSum + height) / spaceSpread;
+		float spreadHeight = roundFloat((waterSum + height) / spaceSpread);
 		
 		//Changing empty blocks
 		if (relX-1 >= 0) {
@@ -188,11 +245,11 @@ public class Fluid extends Cube implements Updateable{
 				if (currentChunk.get(relX-1).get(relZ).get(coords.getY()) == 0) {
 					gen.liquids.put(new Coord<Integer>(coords.getX()-1, coords.getY(), coords.getZ()), spreadHeight);
 					currentChunk.get(relX-1).get(relZ).set(coords.getY(), (short) 6);
-					window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>(relX-1, coords.getY(), relZ));
 					window.getChunk(chunkX, chunkZ).load(relX-1, coords.getY(), relZ, gen);
+					window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX-1, coords.getY(), relZ));
 				}else if (currentChunk.get(relX-1).get(relZ).get(coords.getY()) == 6) {
 					gen.liquids.put(new Coord<Integer>(coords.getX()-1, coords.getY(), coords.getZ()), spreadHeight);
-					window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>(relX-1, coords.getY(), relZ));
+					window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX-1, coords.getY(), relZ));
 //					window.getChunk(chunkX, chunkZ).load(relX-1, coords.getY(), relZ, gen);
 				}
 			}
@@ -203,11 +260,11 @@ public class Fluid extends Cube implements Updateable{
 					if (adjacentChunk.get(15).get(relZ).get(coords.getY()) == 0) {
 						gen.liquids.put(new Coord<Integer>(coords.getX()-1, coords.getY(), coords.getZ()), spreadHeight);
 						adjacentChunk.get(15).get(relZ).set(coords.getY(), (short) 6);
-						window.getChunk(chunkX-1, chunkZ).blocksToUpdate.add(new Coord<Integer>(15, coords.getY(), relZ));
 						window.getChunk(chunkX-1, chunkZ).load(15, coords.getY(), relZ, gen);
+						window.getChunk(chunkX-1, chunkZ).updateCube(new Coord<Integer>(15, coords.getY(), relZ));
 					}else if (adjacentChunk.get(15).get(relZ).get(coords.getY()) == 6) {
 						gen.liquids.put(new Coord<Integer>(coords.getX()-1, coords.getY(), coords.getZ()), spreadHeight);
-						window.getChunk(chunkX-1, chunkZ).blocksToUpdate.add(new Coord<Integer>(15, coords.getY(), relZ));
+						window.getChunk(chunkX-1, chunkZ).updateCube(new Coord<Integer>(15, coords.getY(), relZ));
 //						window.getChunk(chunkX-1, chunkZ).load(relX-1, coords.getY(), relZ, gen);
 					}
 				}
@@ -218,11 +275,11 @@ public class Fluid extends Cube implements Updateable{
 				if (currentChunk.get(relX).get(relZ-1).get(coords.getY()) == 0) {
 					gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()-1), spreadHeight);
 					currentChunk.get(relX).get(relZ-1).set(coords.getY(), (short) 6);
-					window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>(relX, coords.getY(), relZ-1));
 					window.getChunk(chunkX, chunkZ).load(relX, coords.getY(), relZ-1, gen);
+					window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX, coords.getY(), relZ-1));
 				}else if (currentChunk.get(relX).get(relZ-1).get(coords.getY()) == 6) {
 					gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()-1), spreadHeight);
-					window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>(relX, coords.getY(), relZ-1));
+					window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX, coords.getY(), relZ-1));
 //					window.getChunk(chunkX, chunkZ).load(relX, coords.getY(), relZ-1, gen);
 				}
 			}
@@ -233,11 +290,11 @@ public class Fluid extends Cube implements Updateable{
 					if (adjacentChunk.get(relX).get(15).get(coords.getY()) == 0) {
 						gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()-1), spreadHeight);
 						adjacentChunk.get(relX).get(15).set(coords.getY(), (short) 6);
-						window.getChunk(chunkX, chunkZ-1).blocksToUpdate.add(new Coord<Integer>(relX, coords.getY(), 15));
 						window.getChunk(chunkX, chunkZ-1).load(relX, coords.getY(), 15, gen);
+						window.getChunk(chunkX, chunkZ-1).updateCube(new Coord<Integer>(relX, coords.getY(), 15));
 					}else if (adjacentChunk.get(relX).get(15).get(coords.getY()) == 6) {
 						gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()-1), spreadHeight);
-						window.getChunk(chunkX, chunkZ-1).blocksToUpdate.add(new Coord<Integer>(relX, coords.getY(), 15));
+						window.getChunk(chunkX, chunkZ-1).updateCube(new Coord<Integer>(relX, coords.getY(), 15));
 //						window.getChunk(chunkX, chunkZ-1).load(relX, coords.getY(), relZ-1, gen);
 					}
 				}
@@ -248,11 +305,11 @@ public class Fluid extends Cube implements Updateable{
 				if (currentChunk.get(relX+1).get(relZ).get(coords.getY()) == 0) {
 					gen.liquids.put(new Coord<Integer>(coords.getX()+1, coords.getY(), coords.getZ()), spreadHeight);
 					currentChunk.get(relX+1).get(relZ).set(coords.getY(), (short) 6);
-					window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>(relX+1, coords.getY(), relZ));
 					window.getChunk(chunkX, chunkZ).load(relX+1, coords.getY(), relZ, gen);
+					window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX+1, coords.getY(), relZ));
 				}else if (currentChunk.get(relX+1).get(relZ).get(coords.getY()) == 6) {
 					gen.liquids.put(new Coord<Integer>(coords.getX()+1, coords.getY(), coords.getZ()), spreadHeight);
-					window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>(relX+1, coords.getY(), relZ));
+					window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX+1, coords.getY(), relZ));
 //					window.getChunk(chunkX, chunkZ).load(relX+1, coords.getY(), relZ, gen);
 				}
 			}
@@ -263,11 +320,11 @@ public class Fluid extends Cube implements Updateable{
 					if (adjacentChunk.get(0).get(relZ).get(coords.getY()) == 0) {
 						gen.liquids.put(new Coord<Integer>(coords.getX()+1, coords.getY(), coords.getZ()), spreadHeight);
 						adjacentChunk.get(0).get(relZ).set(coords.getY(), (short) 6);
-						window.getChunk(chunkX+1, chunkZ).blocksToUpdate.add(new Coord<Integer>(0, coords.getY(), relZ));
 						window.getChunk(chunkX+1, chunkZ).load(0, coords.getY(), relZ, gen);
+						window.getChunk(chunkX+1, chunkZ).updateCube(new Coord<Integer>(0, coords.getY(), relZ));
 					}else if (adjacentChunk.get(0).get(relZ).get(coords.getY()) == 6) {
 						gen.liquids.put(new Coord<Integer>(coords.getX()+1, coords.getY(), coords.getZ()), spreadHeight);
-						window.getChunk(chunkX+1, chunkZ).blocksToUpdate.add(new Coord<Integer>(0, coords.getY(), relZ));
+						window.getChunk(chunkX+1, chunkZ).updateCube(new Coord<Integer>(0, coords.getY(), relZ));
 //						window.getChunk(chunkX+1, chunkZ).load(relX+1, coords.getY(), relZ, gen);
 					}
 				}
@@ -278,11 +335,11 @@ public class Fluid extends Cube implements Updateable{
 				if (currentChunk.get(relX).get(relZ+1).get(coords.getY()) == 0) {
 					gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()+1), spreadHeight);
 					currentChunk.get(relX).get(relZ+1).set(coords.getY(), (short) 6);
-					window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>(relX, coords.getY(), relZ+1));
 					window.getChunk(chunkX, chunkZ).load(relX, coords.getY(), relZ+1, gen);
+					window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX, coords.getY(), relZ+1));
 				}else if (currentChunk.get(relX).get(relZ+1).get(coords.getY()) == 6) {
 					gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()+1), spreadHeight);
-					window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>(relX, coords.getY(), relZ+1));
+					window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX, coords.getY(), relZ+1));
 //					window.getChunk(chunkX, chunkZ).load(relX, coords.getY(), relZ+1, gen);
 				}
 			}
@@ -293,11 +350,11 @@ public class Fluid extends Cube implements Updateable{
 					if (adjacentChunk.get(relX).get(0).get(coords.getY()) == 0) {
 						gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()+1), spreadHeight);
 						adjacentChunk.get(relX).get(0).set(coords.getY(), (short) 6);
-						window.getChunk(chunkX, chunkZ+1).blocksToUpdate.add(new Coord<Integer>(relX, coords.getY(), 0));
 						window.getChunk(chunkX, chunkZ+1).load(relX, coords.getY(), 0, gen);
+						window.getChunk(chunkX, chunkZ+1).updateCube(new Coord<Integer>(relX, coords.getY(), 0));
 					}else if (adjacentChunk.get(relX).get(0).get(coords.getY()) == 6) {
 						gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()+1), spreadHeight);
-						window.getChunk(chunkX, chunkZ+1).blocksToUpdate.add(new Coord<Integer>(relX, coords.getY(), 0));
+						window.getChunk(chunkX, chunkZ+1).updateCube(new Coord<Integer>(relX, coords.getY(), 0));
 //						window.getChunk(chunkX, chunkZ+1).load(relX, coords.getY(), relZ+1, gen);
 					}
 				}
@@ -308,9 +365,38 @@ public class Fluid extends Cube implements Updateable{
 //				spaceSpread++;
 //			}
 //		}
-		if (spreadHeight != height) {
-			window.getChunk(chunkX, chunkZ).blocksToUpdate.add(new Coord<Integer>(relX, coords.getY(), relZ));
+		if (Math.pow(spreadHeight - height,2) > 0.001) {
+			setHeight(spreadHeight);
+			stable = 0;
+		}else {
+			stable++;
 		}
+		
+//		if (stable < 1) {
+//			window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX, coords.getY(), relZ));
+//		}
+		
 		gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()), spreadHeight);
+	}
+	public void setPriority(int priority) {
+		this.priority = priority;
+	}
+	
+	/**
+	 * Function to round a number, used to deal with precision loss in float conversions
+	 * @param in Number to round
+	 * @return The number rounded to 3 digits
+	 */
+	public float roundFloat(float in) {
+		return (float) (Math.round(in*10000)/10000.0);
+	}
+	
+	@Override
+	public int getPriority() {
+		return priority;
+	}
+	@Override
+	public int compareTo(Updateable o) {
+		return -o.getPriority() + this.priority;
 	}
 }

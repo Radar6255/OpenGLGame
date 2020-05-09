@@ -3,7 +3,6 @@ package com.radar.client.world;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 
 import com.jogamp.common.nio.Buffers;
@@ -26,12 +25,6 @@ public class Chunk {
 	 * List of all cubes in this chunk
 	 */
 	private HashMap<Coord<Integer>, Cube> cubes;
-	
-	
-	private LinkedList<Updateable> blockUpdates;
-	
-	
-	public HashSet<Coord<Integer>> blocksToUpdate;
 	
 	private LinkedList<Integer> facesToRemove;
 	
@@ -82,6 +75,8 @@ public class Chunk {
 	 */
 	private volatile int numFaces = 0;
 	
+	private WindowUpdates window;
+	
 	LinkedList<Integer> availableSpace;
 	
 	private int maxFaces;
@@ -96,12 +91,11 @@ public class Chunk {
 	 * @param x The x chunk position of this chunk
 	 * @param z The z chunk position of this chunk
 	 */
-	public Chunk(int x, int z, WorldGen gen) {
+	public Chunk(int x, int z, WorldGen gen, WindowUpdates window) {
 		this.x = x;
 		this.z = z;
+		this.window = window;
 		
-		blockUpdates = new LinkedList<>();
-		blocksToUpdate = new HashSet<>();
 		availableSpace = new LinkedList<>();
 		
 		facesToRemove = new LinkedList<>();
@@ -111,51 +105,25 @@ public class Chunk {
 		load(gen);
 	}
 	
-	@SuppressWarnings("unchecked")
-	public void update(WorldGen gen, WindowUpdates window) {
-		
-		HashSet<Coord<Integer>> blocksToUpdateC = (HashSet<Coord<Integer>>) blocksToUpdate.clone();
-		blocksToUpdate.clear();
-		
-		for(Coord<Integer> pos: blocksToUpdateC) {
-			if(cubes.containsKey(new Coord<Integer>(pos.getX()+16*x, pos.getY(), pos.getZ()+16*z))) {
-				blockUpdates.add((Updateable) cubes.get(new Coord<Integer>(pos.getX()+16*x, pos.getY(), pos.getZ()+16*z)));
-			}else {
-				System.out.println("Couldn't find "+pos.toString());
-			}
+	public void updateCube(Coord<Integer> pos) {
+		if(cubes.containsKey(new Coord<Integer>(pos.getX()+16*x, pos.getY(), pos.getZ()+16*z))) {
+			window.addUpdate((Updateable) cubes.get(new Coord<Integer>(pos.getX()+16*x, pos.getY(), pos.getZ()+16*z)));
 		}
-		
-		LinkedList<Updateable> tempUpdates = (LinkedList<Updateable>) blockUpdates.clone();
-		blockUpdates.clear();
-		for (Updateable cube: tempUpdates) {
-			cube.update(window);
-
-			if(cube instanceof Fluid) {
-				Fluid fluid = (Fluid) cube;
-				fluid.facesNotVisible();
-				Coord<Integer> pos = fluid.getPos();
-				
-				int[] temp = cubes.get(new Coord<Integer>(pos.getX(),pos.getY(),pos.getZ())).remove();
-				
-				for (int i = 0; i < temp.length; i++) {
-					facesToRemove.add(temp[i]);
-				}
-				
-				Coord2D<Integer> rel = PointConversion.absoluteToRelative(new Coord2D<Integer>(pos.getX(), pos.getZ()));
-				System.out.println(rel.getX()+" "+rel.getZ());
-				updateCube(rel.getX(), pos.getY(), rel.getZ());
-			}
-		}
-		
-//		//Clears old blocks and replaces them with new ones
-//		//Allows blocks to be removed/added visually
-//		if (ran) {
-//			load(gen);
-//			update = true;
-//		}
-		
 	}
+	
+//	public void removeCubeUpdate(Cube remove) {
+//		window.removeCubeUpdate(remove);
+//	}
 
+	public void removeCubeFaces(Cube removing) {
+		int[] temp = removing.remove();
+		
+		for (int i = 0; i < temp.length; i++) {
+			facesToRemove.add(temp[i]);
+		}
+		removing.facesNotVisible();
+	}
+	
 	/**
 	 * Called by the worldGen thread, used to do any intense processes,
 	 * before first render call, also called when resizing buffers
@@ -187,15 +155,15 @@ public class Chunk {
 //								System.out.println(test.equals(new Coord<Integer>(x*16 + tx, ty, z*16 + tz)));
 //							}
 							addCube(currentPos, temp);
-							if (blocksToUpdate.contains(new Coord<Integer>(x*16 + tx, ty, z*16 + tz))) {
-								blockUpdates.add(temp);
-							}
+//							if (blocksToUpdate.contains(new Coord<Integer>(x*16 + tx, ty, z*16 + tz))) {
+//								blockUpdates.add(temp);
+//							}
 						}
 					}
 				}
 			}
 		}
-		blocksToUpdate.clear();
+//		blocksToUpdate.clear();
 		generateBufferArray();
 		update = true;
 	}
@@ -231,7 +199,6 @@ public class Chunk {
 			cubes.remove(new Coord<Integer>(x+16*this.x,y,z+16*this.z));
 		}else {
 			if (chunk.get(rel.getX()).get(rel.getZ()).get(y) != 6) {
-				//TODO get faces from block to put into facesToAdd
 				Block block = new Block(x+16*this.x,y,z+16*this.z, faceTextures[chunk.get(x).get(z).get(y)-1], gen);
 				cubes.put(new Coord<Integer>(x+16*this.x,y,z+16*this.z), block);
 				block.facesNotVisible();
@@ -243,31 +210,33 @@ public class Chunk {
 				}catch(Exception e){
 					temp = new Fluid(x+16*this.x,y,z+16*this.z, faceTextures[chunk.get(x).get(z).get(y)-1], 1, gen);
 					gen.liquids.put(new Coord<Integer>(x+16*this.x,y,z+16*this.z), 1f);
-				}temp.facesNotVisible();
+				}temp.setPriority(BlockUpdateHandler.priority);
+				BlockUpdateHandler.priority++;
+				temp.facesNotVisible();
 				addCube(new Coord<Integer>(x+16*this.x,y,z+16*this.z), temp);
 			}
-			updateCube(rel.getX(),y,rel.getZ());
+			renderUpdateCube(rel.getX(),y,rel.getZ());
 		}
 		if (cubes.containsKey(new Coord<Integer>(x+1+16*this.x,y,z+16*this.z))) {
-			updateCube(x+1, y, z);
+			renderUpdateCube(x+1, y, z);
 			
 		}if (cubes.containsKey(new Coord<Integer>(x-1+16*this.x,y,z+16*this.z))) {
-			updateCube(x-1, y, z);
+			renderUpdateCube(x-1, y, z);
 			
 		}if (cubes.containsKey(new Coord<Integer>(x+16*this.x,y+1,z+16*this.z))) {
-			updateCube(x, y+1, z);
+			renderUpdateCube(x, y+1, z);
 			
 		}if (cubes.containsKey(new Coord<Integer>(x+16*this.x,y-1,z+16*this.z))) {
-			updateCube(x, y-1, z);
+			renderUpdateCube(x, y-1, z);
 			
 		}if (cubes.containsKey(new Coord<Integer>(x+16*this.x,y,z+1+16*this.z))) {
-			updateCube(x, y, z+1);
+			renderUpdateCube(x, y, z+1);
 			
 		}if (cubes.containsKey(new Coord<Integer>(x+16*this.x,y,z-1+16*this.z))) {
-			updateCube(x, y, z-1);	
+			renderUpdateCube(x, y, z-1);	
 		}
 	}
-	public void updateCube(int x, int y, int z) {
+	public void renderUpdateCube(int x, int y, int z) {
 		Cube update = cubes.get(new Coord<Integer>(x + this.x*16,y,z + this.z*16));
 		if(update == null) {
 			return;
@@ -280,7 +249,7 @@ public class Chunk {
 			}else if (curr.getAction() == -1) {
 				facesToRemove.add(curr.getFaceID());
 				update.replaceId(curr.getFaceID());
-			}//TODO Deal with face changing
+			}
 		}
 	}
 	

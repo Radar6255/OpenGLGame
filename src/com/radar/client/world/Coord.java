@@ -32,6 +32,7 @@ public class Coord<E> {
 			return true;
 		if (getClass() != obj.getClass())
 			return false;
+		@SuppressWarnings("rawtypes")
 		Coord other = (Coord) obj;
 		if (x == null) {
 			if (other.x != null)

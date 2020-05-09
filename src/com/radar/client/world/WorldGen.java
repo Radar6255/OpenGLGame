@@ -32,12 +32,12 @@ public class WorldGen implements Runnable {
 	public HashMap<Coord<Integer>,Float> liquids;
 	
 	//TODO Make a setting variable
-	public static byte renderDist = 7;
+	public static byte renderDist = 4;
 	
 	/**
 	 * Stores how many chunks to generate the terrian of the world out to
 	 */
-	public static byte genDist = 12;
+	public static byte genDist = 8;
 	
 	/**
 	 * Keeps the world generation running while the game is running
@@ -154,7 +154,7 @@ public class WorldGen implements Runnable {
 	 */
 	public Chunk loadChunk(int chunkX, int chunkZ) {
 		visibleChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
-		Chunk creating = new Chunk(chunkX, chunkZ, this);
+		Chunk creating = new Chunk(chunkX, chunkZ, this, window);
 		return creating;
 	}
 	
