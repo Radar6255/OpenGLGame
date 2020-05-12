@@ -614,15 +614,15 @@ public class Player implements KeyListener, MouseListener, Protocol{
 						window.getChunk(chunkX, chunkZ).load(collisionPoint.getX(), collisionPoint.getY(), collisionPoint.getZ(), worldGen);
 						//Updating adjacent chunks if neccessary
 						if ((int) Math.floor(collisionPoint.getX()) == 15) {
-							window.getChunk(chunkX+1, chunkZ).renderUpdateCube(0, (int) cy, collisionPoint.getZ());
+							window.getChunk(chunkX+1, chunkZ).renderUpdateCube(0, (int) cy, collisionPoint.getZ(), 0);
 						}else if ((int) Math.floor(collisionPoint.getX()) == 0) {
-							window.getChunk(chunkX-1, chunkZ).renderUpdateCube(15, (int) cy, collisionPoint.getZ());
+							window.getChunk(chunkX-1, chunkZ).renderUpdateCube(15, (int) cy, collisionPoint.getZ(), 0);
 						}
 						
 						if ((int) Math.floor(collisionPoint.getZ()) == 15) {
-							window.getChunk(chunkX, chunkZ+1).renderUpdateCube(collisionPoint.getX(), (int) cy, 0);
+							window.getChunk(chunkX, chunkZ+1).renderUpdateCube(collisionPoint.getX(), (int) cy, 0, 0);
 						}else if ((int) Math.floor(collisionPoint.getZ()) == 0) {
-							window.getChunk(chunkX, chunkZ-1).renderUpdateCube(collisionPoint.getX(), (int) cy, 15);
+							window.getChunk(chunkX, chunkZ-1).renderUpdateCube(collisionPoint.getX(), (int) cy, 15, 0);
 						}
 						
 					}catch(Exception e) {
@@ -713,14 +713,14 @@ public class Player implements KeyListener, MouseListener, Protocol{
 //						window.getChunk(chunkX, chunkZ).load(relX, (int) cy, relZ, worldGen);
 						//Updating adjacent chunks if neccessary
 						if ((int) Math.floor(collisionPoint.getX()) == 15) {
-							window.getChunk(chunkX+1, chunkZ).renderUpdateCube(0, (int) cy, collisionPoint.getZ());
+							window.getChunk(chunkX+1, chunkZ).renderUpdateCube(0, (int) cy, collisionPoint.getZ(), currentlyPlacing);
 						}if ((int) Math.floor(collisionPoint.getZ()) == 15) {
-							window.getChunk(chunkX, chunkZ+1).renderUpdateCube(collisionPoint.getX(), (int) cy, 0);
+							window.getChunk(chunkX, chunkZ+1).renderUpdateCube(collisionPoint.getX(), (int) cy, 0, currentlyPlacing);
 						}
 						if ((int) Math.floor(collisionPoint.getX()) == 0) {
-							window.getChunk(chunkX-1, chunkZ).renderUpdateCube(15, (int) cy, collisionPoint.getZ());
+							window.getChunk(chunkX-1, chunkZ).renderUpdateCube(15, (int) cy, collisionPoint.getZ(), currentlyPlacing);
 						}if ((int) Math.floor(collisionPoint.getZ()) == 0) {
-							window.getChunk(chunkX, chunkZ-1).renderUpdateCube(collisionPoint.getX(), (int) cy, 15);
+							window.getChunk(chunkX, chunkZ-1).renderUpdateCube(collisionPoint.getX(), (int) cy, 15, currentlyPlacing);
 						}
 					}catch(Exception e) {
 						System.out.println("Bah "+e.getMessage());

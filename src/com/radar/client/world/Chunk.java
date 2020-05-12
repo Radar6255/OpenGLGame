@@ -198,8 +198,8 @@ public class Chunk {
 			System.out.println("Out of bounds load");
 			return;
 		}
-		
-		if (chunk.get(rel.getX()).get(rel.getZ()).get(y) == 0) {
+		int mostRecentLoad = chunk.get(rel.getX()).get(rel.getZ()).get(y);
+		if (mostRecentLoad == 0) {
 			if(!cubes.containsKey(new Coord<Integer>(x+16*this.x,y,z+16*this.z))) {
 				System.out.println("Trying to remove non-existant cube");
 				return;
@@ -208,7 +208,7 @@ public class Chunk {
 			
 			cubes.remove(new Coord<Integer>(x+16*this.x,y,z+16*this.z));
 		}else {
-			if (chunk.get(rel.getX()).get(rel.getZ()).get(y) != 6) {
+			if (mostRecentLoad != 6) {
 				Block block = new Block(x+16*this.x,y,z+16*this.z, faceTextures[chunk.get(x).get(z).get(y)-1], gen);
 				cubes.put(new Coord<Integer>(x+16*this.x,y,z+16*this.z), block);
 				block.facesNotVisible();
@@ -225,32 +225,39 @@ public class Chunk {
 				temp.facesNotVisible();
 				addCube(new Coord<Integer>(x+16*this.x,y,z+16*this.z), temp);
 			}
-			renderUpdateCube(rel.getX(),y,rel.getZ());
+			renderUpdateCube(rel.getX(),y,rel.getZ(), mostRecentLoad);
 		}
 		if (cubes.containsKey(new Coord<Integer>(x+1+16*this.x,y,z+16*this.z))) {
-			renderUpdateCube(x+1, y, z);
+			renderUpdateCube(x+1, y, z, mostRecentLoad);
 			
 		}if (cubes.containsKey(new Coord<Integer>(x-1+16*this.x,y,z+16*this.z))) {
-			renderUpdateCube(x-1, y, z);
+			renderUpdateCube(x-1, y, z, mostRecentLoad);
 			
 		}if (cubes.containsKey(new Coord<Integer>(x+16*this.x,y+1,z+16*this.z))) {
-			renderUpdateCube(x, y+1, z);
+			renderUpdateCube(x, y+1, z, mostRecentLoad);
 			
 		}if (cubes.containsKey(new Coord<Integer>(x+16*this.x,y-1,z+16*this.z))) {
-			renderUpdateCube(x, y-1, z);
+			renderUpdateCube(x, y-1, z, mostRecentLoad);
 			
 		}if (cubes.containsKey(new Coord<Integer>(x+16*this.x,y,z+1+16*this.z))) {
-			renderUpdateCube(x, y, z+1);
+			renderUpdateCube(x, y, z+1, mostRecentLoad);
 			
 		}if (cubes.containsKey(new Coord<Integer>(x+16*this.x,y,z-1+16*this.z))) {
-			renderUpdateCube(x, y, z-1);	
+			renderUpdateCube(x, y, z-1, mostRecentLoad);	
 		}
 	}
-	public void renderUpdateCube(int x, int y, int z) {
+	public void renderUpdateCube(int x, int y, int z, int loadedFrom) {
 		Cube update = cubes.get(new Coord<Integer>(x + this.x*16,y,z + this.z*16));
 		if(update == null) {
 			return;
 		}
+		if(loadedFrom != 6 && update instanceof Fluid) {
+			Fluid fluid = (Fluid) update;
+			Coord2D<Integer> rel = PointConversion.absoluteToRelative(fluid.getPosition());
+			updateCube(new Coord<Integer>(rel.getX(), fluid.getPosition().getY(), rel.getZ()));
+			System.out.println("We updatin");
+		}
+		
 		LinkedList<FaceUpdateData> in = update.renderUpdate();
 		for (FaceUpdateData curr: in) {
 			if (curr.getAction() == 1) {

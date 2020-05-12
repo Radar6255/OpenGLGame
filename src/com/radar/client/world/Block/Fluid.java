@@ -151,7 +151,7 @@ public class Fluid extends Cube implements Updateable{
 					window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX, coords.getY(), relZ));
 					return;
 				}
-				if(gen.liquids.get(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ())) + height != 1) {
+//				if(gen.liquids.get(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ())) + height != 1) {
 					float pullHeight = (waterSum + height + gen.liquids.get(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ())) - 1) / waterAdjacent;
 					
 					if(pullHeight < 0) {
@@ -161,7 +161,7 @@ public class Fluid extends Cube implements Updateable{
 						pullWater(relX, relZ, pullHeight, chunkX, chunkZ, currentChunk, window);
 						height = 1 - gen.liquids.get(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ()));
 					}
-				}
+//				}
 				currentChunk.get(relX).get(relZ).set(coords.getY(), (short) 0);
 				window.getChunk(chunkX, chunkZ).load(relX, coords.getY(), relZ, gen);
 				window.removeCubeUpdate(this);

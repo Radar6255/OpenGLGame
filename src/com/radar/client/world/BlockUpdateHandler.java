@@ -30,7 +30,7 @@ public class BlockUpdateHandler {
 				window.getChunk(chunkPos).removeCubeFaces(fluid);
 				
 				Coord2D<Integer> rel = PointConversion.absoluteToRelative(pos);
-				window.getChunk(chunkPos).renderUpdateCube(rel.getX(), pos.getY(), rel.getZ());
+				window.getChunk(chunkPos).renderUpdateCube(rel.getX(), pos.getY(), rel.getZ(), 6);
 			}
 		}
 	}
