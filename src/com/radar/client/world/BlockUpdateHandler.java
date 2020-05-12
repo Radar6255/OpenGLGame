@@ -61,8 +61,6 @@ public class BlockUpdateHandler {
 		}
 		if(i < blocksToUpdate.size()) {
 			blocksToUpdate.remove(i);
-		}else {
-			System.out.println("Couldn't find cube to remove from updates");
 		}
 	}
 }

@@ -192,10 +192,10 @@ public abstract class Cube {
 					action = 1;
 					float[][] verts = getFaceVert(faceID);
 					float[][] norms = getFaceNorm(faceID);
-					out.add(new FaceUpdateData(action, faceID, verts, norms));
+					out.add(new FaceUpdateData(action, faceID, verts, norms, coords));
 				}else {
 					action = -1;
-					out.add(new FaceUpdateData(action, faceID));
+					out.add(new FaceUpdateData(action, faceID, coords));
 				}
 			}
 		}
@@ -249,6 +249,10 @@ public abstract class Cube {
 				return;
 			}
 		}
+	}
+	
+	public Coord<Integer> getPosition(){
+		return coords;
 	}
 	
 	/**
