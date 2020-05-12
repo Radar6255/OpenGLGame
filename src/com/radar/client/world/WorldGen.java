@@ -70,6 +70,8 @@ public class WorldGen implements Runnable {
 	 */
 	public HashSet<Coord2D<Integer>> editedChunks;
 	
+	public boolean write = true;
+	
 	/**
 	 * Indicies of textures for each face
 	 */
@@ -95,24 +97,30 @@ public class WorldGen implements Runnable {
 		running = true;
 		visibleChunks = new HashSet<>();
 		editedChunks = new HashSet<>();
+
+		world = new HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>>();
+		liquids = new HashMap<>();
 		
 		if (!Game.MULTIPLAYER) {
-			saved = worldIO.load("world.dat");
+			saved = worldIO.load("world.dat", this);
 			seed = worldIO.getSeed();
+			if(saved == null) {
+				write = false;
+			}
 		}
 		this.seed = seed;
 		genGradient(1000, seed);
+		
 		thread = new Thread(this);
 		thread.start();
-		world = new HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>>();
-		liquids = new HashMap<>();
 	}
 	
 	/**
 	 * Shuts down this objects thread
 	 */
 	public void stop() {
-		worldIO.save(world, editedChunks, this, seed);
+		if(write)
+			worldIO.save(world, editedChunks, this, seed);
 		running = false;
 		try {
 			thread.join();

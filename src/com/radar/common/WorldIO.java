@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Scanner;
 
+import com.radar.client.world.Coord;
 import com.radar.client.world.Coord2D;
 import com.radar.client.world.WorldGen;
 
@@ -50,30 +51,31 @@ public class WorldIO {
 			System.out.println("Output file not found, world not saved");
 			return;
 		}
+		// Saving generation seed
 		out.println(genSeed);
+		
+		// Saving edited chunks
 		for (Coord2D<Integer> pos: editedChunks) {
 			out.println(pos.getX()+" "+pos.getZ());
-//			ArrayList<ArrayList<ArrayList<Integer>>> current = world.get(pos.getX()).get(pos.getZ());
 			ArrayList<ArrayList<ArrayList<Short>>> current = gen.getChunk(pos.getX(), pos.getZ());
 			
 			for (int x = 0; x < 16; x++) {
-//				if (x != 0 && x != 15) {
-//					out.print(", ");
-//				}
 				out.print(":");
 				for (int z = 0; z < 16; z++) {
 					out.print(";");
-//					if (z != 0 && z != 15) {
-//						out.print(", ");
-//					}
 					for (Short i: current.get(x).get(z)) {
 						out.print(i+",");
 					}
-//					out.print(";");
 				}
-//				out.print(":");
 			}out.println();
-		}out.close();
+		}
+		// Saving fluid levels
+		out.println();
+		for (Coord<Integer> position: gen.liquids.keySet()) {
+			out.println(position.getX()+" "+position.getY()+" "+position.getZ()+" "+gen.liquids.get(position));
+		}
+		
+		out.close();
 		System.out.println("World saved!");
 	}
 	
@@ -82,7 +84,7 @@ public class WorldIO {
 	 * @param filename The filename of the file to load
 	 * @return A hashmap with keys as chunk locations and values as the chunk data
 	 */
-	public HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>> load(String filename){
+	public HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>> load(String filename, WorldGen gen){
 		System.out.println("Loading world from file: "+filename+"...");
 		Scanner in;
 		try {
@@ -104,6 +106,10 @@ public class WorldIO {
 			
 			while (in.hasNextLine()) {
 				String line = in.nextLine();
+				
+				if(line.equals("")) {
+					break;
+				}
 				String[] coords = line.split(" ");
 				
 				if (coords.length < 1) {
@@ -127,6 +133,13 @@ public class WorldIO {
 					}
 				}
 				out.put(loadPos, creating);
+			}
+			
+			while(in.hasNextLine()) {
+				String line = in.nextLine();
+				String[] fluidValues = line.split(" ");
+				Coord<Integer> fluidPos = new Coord<>(Integer.parseInt(fluidValues[0]), Integer.parseInt(fluidValues[1]), Integer.parseInt(fluidValues[2]));
+				gen.liquids.put(fluidPos, Float.parseFloat(fluidValues[3]));
 			}
 		
 			in.close();

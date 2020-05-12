@@ -136,13 +136,9 @@ public class Fluid extends Cube implements Updateable{
 				currentChunk.get(relX).get(relZ).set(coords.getY()-1, (short) 6);
 				window.getChunk(chunkX, chunkZ).load(relX, coords.getY()-1, relZ, gen);
 				window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX, coords.getY()-1, relZ));
-				System.out.println("Pulled then fell");
 				return;
 			}
-			if(currentChunk.get(relX).get(relZ).get(coords.getY()-1) == 6) {
-				if(gen.liquids.get(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ())) == 1) {
-					return;
-				}
+			if(currentChunk.get(relX).get(relZ).get(coords.getY()-1) == 6 && gen.liquids.get(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ())) != 1) {
 				if(gen.liquids.get(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ())) + height >= 1){
 					float newHeight = height + gen.liquids.get(new Coord<Integer>(coords.getX(), coords.getY()-1, coords.getZ())) - 1.0f;
 					

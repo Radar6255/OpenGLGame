@@ -607,9 +607,9 @@ public class Player implements KeyListener, MouseListener, Protocol{
 					}
 					worldGen.editedChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
 					try {
-						if(worldGen.liquids.containsKey(new Coord<Integer>(collisionPoint.getX()+16*chunkX,collisionPoint.getY(),collisionPoint.getZ()+16*chunkZ))) {
-							System.out.println("Removed "+worldGen.liquids.get(new Coord<Integer>(collisionPoint.getX()+16*chunkX,collisionPoint.getY(),collisionPoint.getZ()+16*chunkZ)));
-						}
+//						if(worldGen.liquids.containsKey(new Coord<Integer>(collisionPoint.getX()+16*chunkX,collisionPoint.getY(),collisionPoint.getZ()+16*chunkZ))) {
+//							System.out.println("Removed "+worldGen.liquids.get(new Coord<Integer>(collisionPoint.getX()+16*chunkX,collisionPoint.getY(),collisionPoint.getZ()+16*chunkZ)));
+//						}
 						worldGen.liquids.remove(new Coord<Integer>(collisionPoint.getX()+16*chunkX,collisionPoint.getY(),collisionPoint.getZ()+16*chunkZ));
 						window.getChunk(chunkX, chunkZ).load(collisionPoint.getX(), collisionPoint.getY(), collisionPoint.getZ(), worldGen);
 						//Updating adjacent chunks if neccessary
