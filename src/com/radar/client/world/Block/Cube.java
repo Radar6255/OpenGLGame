@@ -199,6 +199,7 @@ public abstract class Cube {
 				}
 			}
 		}
+//		facesNotVisible();
 		return out;
 	}
 	
@@ -237,6 +238,10 @@ public abstract class Cube {
 		for (int i = 0; i < 6; i++) {
 			if(faceIDs[i] == oldID) {
 				faceIDs[i] = newID;
+//				if(newID > 0) {
+//					visibleFaces[i] = true;
+//					numVisibleFaces++;
+//				}
 				return;
 			}
 		}System.out.println( "Unable to replace ID:"+oldID+" with "+newID );
@@ -246,6 +251,7 @@ public abstract class Cube {
 		for (int i = 0; i < 6; i++) {
 			if(faceIDs[i] == oldID) {
 				faceIDs[i] = -i - 1;
+//				numVisibleFaces--;
 				return;
 			}
 		}
@@ -370,7 +376,6 @@ public abstract class Cube {
 	}
 	
 	public int[] remove() {
-//		System.out.println();
 		int[] out = new int[numVisibleFaces];
 		int temp = 0;
 		for (int i = 0; i < 6; i++) {

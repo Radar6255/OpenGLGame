@@ -100,7 +100,7 @@ public class WindowUpdates implements GLEventListener {
 	@Override
 	public void display(GLAutoDrawable drawable) {
 		long start = System.currentTimeMillis();
-		if (start - lastTick > 2000) {
+		if (start - lastTick > 500) {
 //			new Thread(() -> {
 //				for (Chunk chunk: tChunks) {
 //					chunk.update(gen, this);

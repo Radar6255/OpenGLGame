@@ -16,9 +16,9 @@ public class BlockUpdateHandler {
 	public void update(WindowUpdates window) {		
 		@SuppressWarnings("unchecked")
 		LinkedList<Updateable> tempUpdates = (LinkedList<Updateable>) blocksToUpdate.clone();
+		blocksToUpdate.clear();
 		
 		tempUpdates.sort(null);
-		blocksToUpdate.clear();
 		for (Updateable cube: tempUpdates) {
 			cube.update(window);
 

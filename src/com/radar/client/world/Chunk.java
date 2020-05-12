@@ -121,6 +121,7 @@ public class Chunk {
 		int[] temp = removing.remove();
 		boolean isVisible = true;
 		
+//		System.out.println(removing.getPosition().toString());
 		for(int i = 0; i < facesToAdd.size(); i++) {
 			if(facesToAdd.get(i).getCubePos().equals(removing.getPosition())) {
 				facesToAdd.remove(i);
@@ -132,7 +133,9 @@ public class Chunk {
 		
 		if(isVisible) {
 			for (int i = 0; i < temp.length; i++) {
-				facesToRemove.add(temp[i]);
+				if(temp[i] > 0) {
+					facesToRemove.add(temp[i]);
+				}
 			}
 		}
 		removing.facesNotVisible();
@@ -201,7 +204,6 @@ public class Chunk {
 		int mostRecentLoad = chunk.get(rel.getX()).get(rel.getZ()).get(y);
 		if (mostRecentLoad == 0) {
 			if(!cubes.containsKey(new Coord<Integer>(x+16*this.x,y,z+16*this.z))) {
-				System.out.println("Trying to remove non-existant cube");
 				return;
 			}
 			removeCubeFaces(cubes.get(new Coord<Integer>(x+16*this.x,y,z+16*this.z)));
@@ -255,7 +257,7 @@ public class Chunk {
 			Fluid fluid = (Fluid) update;
 			Coord2D<Integer> rel = PointConversion.absoluteToRelative(fluid.getPosition());
 			updateCube(new Coord<Integer>(rel.getX(), fluid.getPosition().getY(), rel.getZ()));
-			System.out.println("We updatin");
+//			System.out.println("We updatin");
 		}
 		
 		LinkedList<FaceUpdateData> in = update.renderUpdate();
@@ -342,6 +344,7 @@ public class Chunk {
 		}
 		Iterator<Integer> facesToRemoveIter = facesToRemove.iterator();
 		for (int i = 0; i < facesToAdd.size(); i++) {
+//			System.out.println("Added faces");
 			FaceUpdateData face = facesToAdd.get(i);
 			float faceverts[] = new float[20];
 			float normals[] = new float[12];
@@ -379,7 +382,6 @@ public class Chunk {
 			vertexBuffer.rewind();
 			gl.glBufferSubData(GL2.GL_ARRAY_BUFFER, replace*Buffers.SIZEOF_FLOAT*5*4, 5*4*Buffers.SIZEOF_FLOAT, vertexBuffer);
 			
-//			System.out.println(replace);
 			for(int t = 0; t < 5*4; t++) {
 				this.faceVerts[5*4*replace + t] = faceverts[t];
 			}
@@ -402,6 +404,7 @@ public class Chunk {
 		//Probably fine
 		//TODO possibly speed up loop
 		while(facesToRemoveIter.hasNext()) {
+//			System.out.println("Removed faces");
 			int removingIndex = facesToRemoveIter.next();
 			float faceverts[] = new float[20];
 			float normals[] = new float[12];
