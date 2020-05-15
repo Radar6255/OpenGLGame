@@ -9,6 +9,7 @@ import java.util.LinkedList;
 
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.GL2;
+import com.radar.client.Player;
 import com.radar.client.window.WindowUpdates;
 import com.radar.client.world.Block.Block;
 import com.radar.client.world.Block.Cube;
@@ -22,11 +23,13 @@ import com.radar.common.PointConversion;
  * A class to represent a chunk of cubes,
  * used to make generating, loading, and unloading the world easier.
  */
-public class Chunk {
+public class Chunk implements Comparable<Chunk>{
 	/**
 	 * List of all cubes in this chunk
 	 */
 	private HashMap<Coord<Integer>, Cube> cubes;
+	
+	private HashMap<Coord<Integer>, Fluid> fluids;
 	
 	private HashSet<Integer> facesToRemove;
 	
@@ -107,6 +110,7 @@ public class Chunk {
 		facesToRemove = new HashSet<>();
 		facesToAdd = new LinkedList<>();
 		cubesToModify = new LinkedList<>();
+		fluids = new HashMap<>();
 		
 		load(gen);
 	}
@@ -166,21 +170,13 @@ public class Chunk {
 							}catch(Exception e){
 								temp = new Fluid(x*16 + tx, ty, z*16 + tz, faceTextures[chunk.get(tx).get(tz).get(ty)-1], 1, gen);
 							}
-							
-//							for (Coord<Integer> test: blocksToUpdate) {
-//								System.out.println(test.toString());
-//								System.out.println(test.equals(new Coord<Integer>(x*16 + tx, ty, z*16 + tz)));
-//							}
+							fluids.put(currentPos, temp);
 							addCube(currentPos, temp);
-//							if (blocksToUpdate.contains(new Coord<Integer>(x*16 + tx, ty, z*16 + tz))) {
-//								blockUpdates.add(temp);
-//							}
 						}
 					}
 				}
 			}
 		}
-//		blocksToUpdate.clear();
 		generateBufferArray();
 		update = true;
 	}
@@ -206,6 +202,9 @@ public class Chunk {
 			if(!cubes.containsKey(new Coord<Integer>(x+16*this.x,y,z+16*this.z))) {
 				return;
 			}
+			if(fluids.containsKey(new Coord<Integer>(x+16*this.x,y,z+16*this.z))) {
+				fluids.remove(new Coord<Integer>(x+16*this.x,y,z+16*this.z));
+			}
 			removeCubeFaces(cubes.get(new Coord<Integer>(x+16*this.x,y,z+16*this.z)));
 			
 			cubes.remove(new Coord<Integer>(x+16*this.x,y,z+16*this.z));
@@ -226,6 +225,7 @@ public class Chunk {
 				BlockUpdateHandler.priority++;
 				temp.facesNotVisible();
 				addCube(new Coord<Integer>(x+16*this.x,y,z+16*this.z), temp);
+				fluids.put(new Coord<Integer>(x+16*this.x, y, z+16*this.z), temp);
 			}
 			renderUpdateCube(rel.getX(),y,rel.getZ(), mostRecentLoad);
 		}
@@ -253,21 +253,22 @@ public class Chunk {
 		if(update == null) {
 			return;
 		}
+		LinkedList<FaceUpdateData> in = update.renderUpdate();
+		
 		if(loadedFrom != 6 && update instanceof Fluid) {
 			Fluid fluid = (Fluid) update;
 			Coord2D<Integer> rel = PointConversion.absoluteToRelative(fluid.getPosition());
 			updateCube(new Coord<Integer>(rel.getX(), fluid.getPosition().getY(), rel.getZ()));
-//			System.out.println("We updatin");
 		}
-		
-		LinkedList<FaceUpdateData> in = update.renderUpdate();
-		for (FaceUpdateData curr: in) {
-			if (curr.getAction() == 1) {
-				cubesToModify.add(update);
-				facesToAdd.add(curr);
-			}else if (curr.getAction() == -1) {
-				facesToRemove.add(curr.getFaceID());
-				update.replaceId(curr.getFaceID());
+		if(!(update instanceof Fluid)) {
+			for (FaceUpdateData curr: in) {
+				if (curr.getAction() == 1) {
+					cubesToModify.add(update);
+					facesToAdd.add(curr);
+				}else if (curr.getAction() == -1) {
+					facesToRemove.add(curr.getFaceID());
+					update.replaceId(curr.getFaceID());
+				}
 			}
 		}
 	}
@@ -310,6 +311,10 @@ public class Chunk {
 			gl.glNormalPointer(GL2.GL_FLOAT, 3*Buffers.SIZEOF_FLOAT, 0l);
 			
 			gl.glDrawArrays(GL2.GL_QUADS, 0, numFaces * 4);
+			
+			for(Fluid fluid: fluids.values()) {
+				fluid.render(gl);
+			}
 		}
 	}
 	
@@ -467,6 +472,11 @@ public class Chunk {
 		int pos = 0;
 		
 		for (Cube cube: visibleCubes) {
+			if(cube instanceof Fluid) {
+				cube.getFaceVerts(0);
+				cube.getNormals();
+				continue;
+			}
 			float[][] tempFaceVerts = cube.getFaceVerts(pos/4);
 			float[][] tempNormals = cube.getNormals();
 			
@@ -572,5 +582,18 @@ public class Chunk {
 	 */
 	public float distance(float tx, float tz) {
 		return (float) Math.sqrt(Math.pow(x-(tx/16),2) + Math.pow(z-(tz/16),2));
+	}
+
+	@Override
+	public int compareTo(Chunk o) {
+		Player temp = window.getPlayer();
+		float out = distance(temp.getPos().getX(), temp.getPos().getZ()) - o.distance(temp.getPos().getX(), temp.getPos().getZ());
+		if(out > 0) {
+			return 1;
+		}
+		if(out < 0) {
+			return -1;
+		}
+		return 0;
 	}
 }

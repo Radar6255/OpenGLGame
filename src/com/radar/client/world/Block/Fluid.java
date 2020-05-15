@@ -3,6 +3,7 @@ package com.radar.client.world.Block;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
+import com.jogamp.opengl.GL2;
 import com.radar.client.window.WindowUpdates;
 import com.radar.client.world.Coord;
 import com.radar.client.world.Coord2D;
@@ -29,6 +30,10 @@ public class Fluid extends Cube implements Updateable{
 	
 	private int stable = 0;
 	
+	private float[][] faceVerts;
+	
+	private float[][] faceNorms;
+	
 	/**
 	 * Creates a fluid with specified height at x, y, z location
 	 * 
@@ -40,13 +45,15 @@ public class Fluid extends Cube implements Updateable{
 	 * @param gen The world generation, used to get chunk data for liquid spread
 	 */
 	public Fluid(int x, int y, int z, short[] faceTextures, float height, WorldGen gen) {
-		super(x, y, z, faceTextures, gen);
+		super(x, y, z, faceTextures, gen, false);
 		setHeight(height);
+		adjacentFaceCull();
 		super.setVerticies(verts);
 		
 	}
 	public Fluid(int x, int y, int z, short[] faceTextures, WorldGen gen) {
-		super(x, y, z, faceTextures, gen);
+		super(x, y, z, faceTextures, gen, false);
+		adjacentFaceCull();
 		super.setVerticies(verts);
 	}
 	
@@ -76,6 +83,54 @@ public class Fluid extends Cube implements Updateable{
 	public void setHeight(float height) {
 		this.height = roundFloat(height);
 		changeHeight();
+	}
+	
+	public float[][] getFaceVerts(int startingFaceID){
+		faceVerts = super.getFaceVerts(startingFaceID);
+		return faceVerts;
+	}
+	
+	public LinkedList<FaceUpdateData> renderUpdate() {
+		super.renderUpdate();
+		getFaceVerts(0);
+		getNormals();
+		return null;
+	}
+	
+	public float[][] getNormals() {
+		faceNorms = super.getNormals();
+		return faceNorms;
+	}
+	
+	//TODO Speed up and sort
+	public void render(GL2 gl) {
+		int t = 0;
+		if(faceVerts == null || faceNorms == null) {
+			return;
+		}
+		gl.glFlush();
+		gl.glBegin(GL2.GL_QUADS);
+		for(int i = 0; i < 6; i++) {
+			if(visibleFaces[i]) {
+				gl.glTexCoord2fv(faceVerts[4*t], 3);
+				gl.glNormal3fv(faceNorms[4*t], 0);
+				gl.glVertex3fv(faceVerts[4*t], 0);
+
+				gl.glTexCoord2fv(faceVerts[4*t+1], 3);
+				gl.glNormal3fv(faceNorms[4*t+1], 0);
+				gl.glVertex3fv(faceVerts[4*t+1], 0);
+
+				gl.glTexCoord2fv(faceVerts[4*t+2], 3);
+				gl.glNormal3fv(faceNorms[4*t+2], 0);
+				gl.glVertex3fv(faceVerts[4*t+2], 0);
+
+				gl.glTexCoord2fv(faceVerts[4*t+3], 3);
+				gl.glNormal3fv(faceNorms[4*t+3], 0);
+				gl.glVertex3fv(faceVerts[4*t+3], 0);
+				t++;
+			}
+		}
+		gl.glEnd();
 	}
 	
 	public void update(WindowUpdates window) {
@@ -179,7 +234,7 @@ public class Fluid extends Cube implements Updateable{
 		
 		float spreadHeight = roundFloat((waterSum + height) / spaceSpread);
 		
-		if (Math.pow(spreadHeight - height, 2) > 0.001) {
+		if (Math.pow(spreadHeight - height, 2) > 0.0005) {
 			gen.liquids.put(new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()), spreadHeight);
 			setHeight(spreadHeight);
 			stable = 0;
@@ -359,8 +414,6 @@ public class Fluid extends Cube implements Updateable{
 				}
 			}
 		}
-		
-		
 		
 //		if (stable < 1) {
 //			window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX, coords.getY(), relZ));
@@ -638,5 +691,152 @@ public class Fluid extends Cube implements Updateable{
 	@Override
 	public int compareTo(Updateable o) {
 		return -o.getPriority() + this.priority;
+	}
+	
+	/**
+	 * Used to get rid of faces between cubes that won't be seen
+	 */
+	protected void adjacentFaceCull() {
+		numVisibleFaces = 6;
+		int chunkX, chunkZ;
+		
+		chunkX = (int) Math.floor(coords.getX()/16.0);
+		chunkZ = (int) Math.floor(coords.getZ()/16.0);
+		
+		
+		ArrayList<ArrayList<ArrayList<Short>>> currentChunk = gen.getChunk(chunkX, chunkZ);
+		ArrayList<ArrayList<ArrayList<Short>>> adjacentChunk;
+		
+		
+		//Finding this cubes position relative to the corner of the chunk it is in
+		byte relX, relZ;
+		if (coords.getX() < 0) {
+			relX = (byte) (15 - (Math.abs(coords.getX()+1) % 16));
+		}else {
+			relX = (byte) (Math.abs(coords.getX()) % 16);
+		}
+		if (coords.getZ() < 0) {
+			relZ = (byte) (15 - (Math.abs(coords.getZ()+1) % 16));
+		}else {
+			relZ = (byte) (Math.abs(coords.getZ()) % 16);
+		}
+		
+		if (relX-1 >= 0) {
+			if (currentChunk.get(relX-1).get(relZ).size() > coords.getY()) {
+				Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX()-1, coords.getY(), coords.getZ());
+				if (!transparentBlockIDs.contains(currentChunk.get(relX-1).get(relZ).get(coords.getY()))) {
+					visibleFaces[3] = false;
+					numVisibleFaces--;
+				}else if(currentChunk.get(relX-1).get(relZ).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
+					visibleFaces[3] = false;
+					numVisibleFaces--;
+				}
+			}
+		}else {
+			adjacentChunk = gen.getChunk(chunkX-1, chunkZ);
+			if (adjacentChunk.size() != 0) {
+				if (adjacentChunk.get(15).get(relZ).size() > coords.getY()) {
+					Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX()-1, coords.getY(), coords.getZ());
+					if (!transparentBlockIDs.contains(adjacentChunk.get(15).get(relZ).get(coords.getY()))) {
+						visibleFaces[3] = false;
+						numVisibleFaces--;
+					}else if(adjacentChunk.get(15).get(relZ).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
+						visibleFaces[3] = false;
+						numVisibleFaces--;
+					}
+				}
+			}
+		}
+		if (relZ-1 >= 0) {
+			if (currentChunk.get(relX).get(relZ-1).size() > coords.getY()) {
+				Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()-1);
+				if (!transparentBlockIDs.contains(currentChunk.get(relX).get(relZ-1).get(coords.getY()))) {
+					visibleFaces[1] = false;
+					numVisibleFaces--;
+				}else if(currentChunk.get(relX).get(relZ-1).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
+					visibleFaces[1] = false;
+					numVisibleFaces--;
+				}
+			}
+		}else {
+			adjacentChunk = gen.getChunk(chunkX, chunkZ-1);
+			if (adjacentChunk.size() != 0) {
+				if (adjacentChunk.get(relX).get(15).size() > coords.getY()) {
+					Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()-1);
+					if (!transparentBlockIDs.contains(adjacentChunk.get(relX).get(15).get(coords.getY()))) {
+						visibleFaces[1] = false;
+						numVisibleFaces--;
+					}else if(adjacentChunk.get(relX).get(15).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
+						visibleFaces[1] = false;
+						numVisibleFaces--;
+					}
+				}
+			}
+		}
+		if (relX+1 < 16) {
+			if (currentChunk.get(relX+1).get(relZ).size() > coords.getY()) {
+				Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX()+1, coords.getY(), coords.getZ());
+				if (!transparentBlockIDs.contains(currentChunk.get(relX+1).get(relZ).get(coords.getY()))) {
+					visibleFaces[2] = false;
+					numVisibleFaces--;
+				}else if(currentChunk.get(relX+1).get(relZ).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
+					visibleFaces[2] = false;
+					numVisibleFaces--;
+				}
+			}
+		}else {
+			adjacentChunk = gen.getChunk(chunkX+1, chunkZ);
+			if (adjacentChunk.size() != 0) {
+				if (adjacentChunk.get(0).get(relZ).size() > coords.getY()) {
+					Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX()+1, coords.getY(), coords.getZ());
+					if (!transparentBlockIDs.contains(adjacentChunk.get(0).get(relZ).get(coords.getY()))) {
+						visibleFaces[2] = false;
+						numVisibleFaces--;
+					}else if(adjacentChunk.get(0).get(relZ).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
+						visibleFaces[2] = false;
+						numVisibleFaces--;
+					}
+				}
+			}
+		}
+		if (relZ+1 < 16) {
+			if (currentChunk.get(relX).get(relZ+1).size() > coords.getY()) {
+				Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()+1);
+				if (!transparentBlockIDs.contains(currentChunk.get(relX).get(relZ+1).get(coords.getY()))) {
+					visibleFaces[0] = false;
+					numVisibleFaces--;
+				}else if(currentChunk.get(relX).get(relZ+1).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
+					visibleFaces[0] = false;
+					numVisibleFaces--;
+				}
+			}
+		}else {
+			adjacentChunk = gen.getChunk(chunkX, chunkZ+1);
+			if (adjacentChunk.size() != 0) {
+				if (adjacentChunk.get(relX).get(0).size() > coords.getY()) {
+					Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()+1);
+					if (!transparentBlockIDs.contains(adjacentChunk.get(relX).get(0).get(coords.getY()))) {
+						visibleFaces[0] = false;
+						numVisibleFaces--;
+					}else if(adjacentChunk.get(relX).get(0).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
+						visibleFaces[0] = false;
+						numVisibleFaces--;
+					}
+				}
+			}
+		}
+		if (coords.getY()-1 >= 0) {
+			if (!transparentBlockIDs.contains(currentChunk.get(relX).get(relZ).get(coords.getY()-1))) {
+				visibleFaces[5] = false;
+				numVisibleFaces--;
+			}
+		}
+		if (coords.getY()+1 < currentChunk.get(relX).get(relZ).size()) {
+//			if (!transparentBlockIDs.contains(currentChunk.get(relX).get(relZ).get(coords.getY()+1)) && height == 1) {
+			if(currentChunk.get(relX).get(relZ).get(coords.getY()+1) != 0 && height == 1) {
+				visibleFaces[4] = false;
+				numVisibleFaces--;
+			}
+		}
 	}
 }

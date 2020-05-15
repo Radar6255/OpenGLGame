@@ -18,7 +18,7 @@ public abstract class Cube {
 	/**
 	 * Verticies of the cube
 	 */
-	private float[][] verts = new float[][] {
+	protected float[][] verts = new float[][] {
 		{0.5f, 0.5f, 0.5f, 1, 1}, {0.5f, -0.5f, 0.5f, 1, 0}, {-0.5f, -0.5f, 0.5f, 0, 0}, {-0.5f, 0.5f, 0.5f, 0, 1},
 		{0.5f, 0.5f, -0.5f, 1, 1}, {0.5f, -0.5f, -0.5f, 1, 0}, {-0.5f, -0.5f, -0.5f, 0, 0}, {-0.5f, 0.5f, -0.5f, 0, 1},
 		{0.5f, 0.5f, 0.5f, 1, 1}, {0.5f, -0.5f, 0.5f, 1, 0}, {0.5f, -0.5f, -0.5f, 0, 0}, {0.5f, 0.5f, -0.5f, 0, 1},
@@ -32,7 +32,7 @@ public abstract class Cube {
 	 */
 	private Integer[] faceIDs = new Integer[6];
 	
-	private final static float[][] normals = new float[][] {
+	protected final static float[][] normals = new float[][] {
 		{0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, 
 		{0.0f, 0.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, 
 		{1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, 
@@ -49,7 +49,7 @@ public abstract class Cube {
 	/**
 	 * Holds which faces are visible to the player or not used to cull faces between cubes
 	 */
-	private boolean[] visibleFaces = new boolean[] {true, true, true, true, true, true};
+	protected boolean[] visibleFaces = new boolean[] {true, true, true, true, true, true};
 	
 	/**
 	 * Holds the block IDs of all the blocks that are transparent, used for face culling purposes
@@ -59,7 +59,7 @@ public abstract class Cube {
 	/**
 	 * Holds the number of faces visible on this cube
 	 */
-	private byte numVisibleFaces;
+	protected byte numVisibleFaces;
 	
 	/**
 	 * Holds x,y,z coordinates of the cube
@@ -95,6 +95,33 @@ public abstract class Cube {
 		}
 	}
 	
+	/**
+	 * Constructor to create a cube
+	 * @param x X Position of the cube
+	 * @param y Y Position of the cube
+	 * @param z Z Position of the cube
+	 */
+	public Cube(int x, int y, int z, short[] faceTextures, WorldGen gen, boolean doFaceCull) {
+		coords = new Coord<Integer>(x,y,z);
+		this.faceTextures = faceTextures;
+		this.gen = gen;
+		
+		if(doFaceCull) {
+			adjacentFaceCull();
+		
+			numVisibleFaces = 0;
+			for (int i = 0; i < 6; i++) {
+				if (visibleFaces[i]) {
+					numVisibleFaces++;
+				}
+			}
+		}
+		for (int i = 0; i < 6; i++) {
+			faceIDs[i] = -i - 1;
+		}
+		
+	}
+	
 	public void setVerticies(float[][] verts) {
 		this.verts = verts;
 	}
@@ -123,7 +150,6 @@ public abstract class Cube {
 				for (int v = 0; v < 4; v++) {
 					faceVerts[(visibleFace*4)+v] = new float[] {verts[(i*4) + v][0] + coords.getX(),verts[(i*4) + v][1] + coords.getY(),verts[(i*4) + v][2] + coords.getZ(), //X, Y, Z position of face
 							(verts[(i*4)+v][3]*temp[2]) + temp[0], (verts[(i*4)+v][4]*temp[2]) + temp[1]}; //X, Y position of texture
-//							verts[(i*4)+v][3], verts[(i*4)+v][4]};
 				}visibleFace++;
 			}
 		}
@@ -264,7 +290,7 @@ public abstract class Cube {
 	/**
 	 * Used to get rid of faces between cubes that won't be seen
 	 */
-	private void adjacentFaceCull() {
+	protected void adjacentFaceCull() {
 		numVisibleFaces = 6;
 		int chunkX, chunkZ;
 		

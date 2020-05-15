@@ -3,6 +3,7 @@ package com.radar.client.window;
 import java.util.HashMap;
 import java.util.LinkedList;
 
+import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL2;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLEventListener;
@@ -25,6 +26,8 @@ public class WindowUpdates implements GLEventListener {
 	 * List of all chunks rendering for this player
 	 */
 	private HashMap<Coord2D<Integer>,Chunk> chunks;
+	
+	private LinkedList<Chunk> chunksToSort;
 	
 	/**
 	 * List of chunks waiting to be rendered
@@ -85,6 +88,7 @@ public class WindowUpdates implements GLEventListener {
 		this.window = window;
 		blockUpdater = new BlockUpdateHandler();
 		chunks = new HashMap<Coord2D<Integer>,Chunk>();
+		chunksToSort = new LinkedList<>();
 		chunkQueue = new LinkedList<Chunk>();
 	}
 	
@@ -142,6 +146,8 @@ public class WindowUpdates implements GLEventListener {
 		gl.glEnable(GL2.GL_TEXTURE_2D);
 		gl.glEnable(GL2.GL_LIGHTING);
 		gl.glEnable(GL2.GL_LIGHT0);
+		gl.glEnable(GL2.GL_BLEND);
+		gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
 		gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
 		gl.glEnableClientState(GL2.GL_TEXTURE_COORD_ARRAY);
 		gl.glEnableClientState(GL2.GL_NORMAL_ARRAY);
@@ -153,7 +159,8 @@ public class WindowUpdates implements GLEventListener {
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, new float[] {0.0f, 0.0f, 0.0f, 0.0f}, 0);
 //        gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, 100.0f);
 
-		for (Chunk chunk: chunks.values()) {
+		chunksToSort.sort(null);
+		for (Chunk chunk: chunksToSort) {
 			chunk.render(gl);
 		}
 		gl.glFlush();
@@ -161,6 +168,7 @@ public class WindowUpdates implements GLEventListener {
 		gl.glDisableClientState(GL2.GL_TEXTURE_COORD_ARRAY);
 		gl.glDisableClientState(GL2.GL_VERTEX_ARRAY);
 		gl.glDisableClientState(GL2.GL_NORMAL_ARRAY);
+		gl.glDisable(GL2.GL_BLEND);
 		gl.glDisable(GL2.GL_TEXTURE_2D);
 		gl.glDisable(GL2.GL_LIGHTING);
 		gl.glDisable(GL2.GL_LIGHT0);
@@ -191,6 +199,7 @@ public class WindowUpdates implements GLEventListener {
 			clearing = true;
 			Chunk temp = chunkQueue.pop();
 			chunks.put(new Coord2D<Integer>(temp.getX(), temp.getZ()), temp);
+			chunksToSort.add(temp);
 			clearing = false;
 		}
 		
@@ -199,6 +208,7 @@ public class WindowUpdates implements GLEventListener {
 				gen.removeChunk(chunk.getX(), chunk.getZ());
 				chunk.delete(gl);
 				chunks.remove(new Coord2D<Integer>(chunk.getX(),chunk.getZ()));
+				chunksToSort.remove(chunk);
 				chunk = null;
 				break;
 			}
@@ -247,9 +257,6 @@ public class WindowUpdates implements GLEventListener {
 	    gl.glHint(GL2.GL_PERSPECTIVE_CORRECTION_HINT, GL2.GL_NICEST);
 	    
 	    gl.glMatrixMode(GL2.GL_MODELVIEW);
-	    
-//        gl.glHint(GL2.GL_PERSPECTIVE_CORRECTION_HINT, GL2.GL_DONT_CARE);
-//		createInitialVBOs(gl);
 	}
 
 	@Override
@@ -265,7 +272,7 @@ public class WindowUpdates implements GLEventListener {
 		gl.glMatrixMode( GL2.GL_PROJECTION );
 	    gl.glLoadIdentity();
 	    //                          Start  End
-	    glu.gluPerspective( 45.0f, h, 0.10f, 600.0 );
+	    glu.gluPerspective( 45.0f * 1.1f, h * 1.1f, 0.10f, 600.0 );
 	    gl.glMatrixMode( GL2.GL_MODELVIEW );
 	    gl.glLoadIdentity();
 	}
@@ -300,5 +307,9 @@ public class WindowUpdates implements GLEventListener {
 			chunkQueue.add(chunk);
 			adding = false;
 		}
+	}
+	
+	public Player getPlayer() {
+		return player;
 	}
 }

@@ -52,11 +52,14 @@ public class TextureMap {
 //		cubeMapTex.enable(gl);
 //		cubeMapTex.bind(gl);
 		try {
-//			File file = new File("resources/textureMap.png");
-			File file = new File("resources/largeTextureMap.png");
-			t = TextureIO.newTexture(file, true);
-			textureHeight = t.getHeight();
+			File file = new File("resources/textureMapTransparent.png");
+//			File file = new File("resources/largeTextureMap.png");
+//			BufferedImage temp = ImageIO.read(file);
+//			TextureData temp = TextureIO.newTextureData(GLProfile.get(GLProfile.GL2), file, GL2.GL_RGBA, GL2.GL_RGBA, false, ".png");
+			t = TextureIO.newTexture(file, false);
+//			t = new Texture(gl, new AWTTextureData(GLProfile.get(GLProfile.GL2), GL2.GL_RGBA, GL2.GL_RGBA, false, temp));
 			
+			textureHeight = t.getHeight();
 			
 			t.setTexParameteri(gl, GL2.GL_TEXTURE_WRAP_S, GL2.GL_CLAMP);
 			t.setTexParameteri(gl, GL2.GL_TEXTURE_WRAP_T, GL2.GL_CLAMP);
@@ -64,10 +67,11 @@ public class TextureMap {
 			t.setTexParameteri(gl, GL2.GL_TEXTURE_MAG_FILTER, GL2.GL_NEAREST);
 			t.setTexParameteri(gl, GL2.GL_TEXTURE_MIN_FILTER, GL2.GL_NEAREST);
 			
-			gl.glGenerateMipmap(GL2.GL_TEXTURE_2D);
-			
 			t.enable(gl);
 			t.bind(gl);
+			gl.glTexEnvi(GL2.GL_TEXTURE_ENV, GL2.GL_TEXTURE_ENV_MODE, GL2.GL_MODULATE);
+			
+			
 		} catch (GLException e) {
 			System.out.println("Ran into OpenGL error when loading texture");
 			e.printStackTrace();
@@ -89,12 +93,11 @@ public class TextureMap {
 		for (int x = 0; x < textureHeight/textureRes; x++) {
 			for (int y = 0; y < textureHeight/textureRes; y++) {
 				textureCoords[x+ ((textureHeight/textureRes)*y)] = new float[] {(x*textureRes)/(float)textureHeight, (y*textureRes)/(float)textureHeight, textureRes/(float)textureHeight};
-//				System.out.println((x*textureRes)/(float)textureHeight+" "+(y*textureRes)/(float)textureHeight+ " "+ textureRes/(float)textureHeight);
 			}
 		}
 	}
 	
 	public static float[] getTexCoords(int texture) {
-		return textureCoords[texture-1];
+		return textureCoords[texture - 1];
 	}
 }
