@@ -115,6 +115,10 @@ public class Chunk implements Comparable<Chunk>{
 		load(gen);
 	}
 	
+	/**
+	 * Adds the cube to the window update so that it will be drawn
+	 * @param pos The position  of the cube to update
+	 */
 	public void updateCube(Coord<Integer> pos) {
 		if(cubes.containsKey(new Coord<Integer>(pos.getX()+16*x, pos.getY(), pos.getZ()+16*z))) {
 			window.addUpdate((Updateable) cubes.get(new Coord<Integer>(pos.getX()+16*x, pos.getY(), pos.getZ()+16*z)));
@@ -248,6 +252,12 @@ public class Chunk implements Comparable<Chunk>{
 			renderUpdateCube(x, y, z-1, mostRecentLoad);	
 		}
 	}
+	/**
+	 * @param x The x position of the cube to update
+	 * @param y The y position of the cube to update
+	 * @param z The z position of the cube to update
+	 * @param loadedFrom
+	 */
 	public void renderUpdateCube(int x, int y, int z, int loadedFrom) {
 		Cube update = cubes.get(new Coord<Integer>(x + this.x*16,y,z + this.z*16));
 		if(update == null) {

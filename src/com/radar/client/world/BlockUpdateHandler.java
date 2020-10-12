@@ -27,7 +27,8 @@ public class BlockUpdateHandler {
 				Coord<Integer> pos = fluid.getPos();
 				Coord2D<Integer> chunkPos = PointConversion.findChunk(pos);
 				
-				window.getChunk(chunkPos).removeCubeFaces(fluid);
+				//Wasn't needed, probably from when fluids faces were in chunks
+//				window.getChunk(chunkPos).removeCubeFaces(fluid);
 				
 				Coord2D<Integer> rel = PointConversion.absoluteToRelative(pos);
 				window.getChunk(chunkPos).renderUpdateCube(rel.getX(), pos.getY(), rel.getZ(), 6);

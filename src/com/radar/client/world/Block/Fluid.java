@@ -90,6 +90,7 @@ public class Fluid extends Cube implements Updateable{
 		return faceVerts;
 	}
 	
+	//TODO Causing my problems most likely
 	public LinkedList<FaceUpdateData> renderUpdate() {
 		super.renderUpdate();
 		getFaceVerts(0);
@@ -696,147 +697,147 @@ public class Fluid extends Cube implements Updateable{
 	/**
 	 * Used to get rid of faces between cubes that won't be seen
 	 */
-	protected void adjacentFaceCull() {
-		numVisibleFaces = 6;
-		int chunkX, chunkZ;
-		
-		chunkX = (int) Math.floor(coords.getX()/16.0);
-		chunkZ = (int) Math.floor(coords.getZ()/16.0);
-		
-		
-		ArrayList<ArrayList<ArrayList<Short>>> currentChunk = gen.getChunk(chunkX, chunkZ);
-		ArrayList<ArrayList<ArrayList<Short>>> adjacentChunk;
-		
-		
-		//Finding this cubes position relative to the corner of the chunk it is in
-		byte relX, relZ;
-		if (coords.getX() < 0) {
-			relX = (byte) (15 - (Math.abs(coords.getX()+1) % 16));
-		}else {
-			relX = (byte) (Math.abs(coords.getX()) % 16);
-		}
-		if (coords.getZ() < 0) {
-			relZ = (byte) (15 - (Math.abs(coords.getZ()+1) % 16));
-		}else {
-			relZ = (byte) (Math.abs(coords.getZ()) % 16);
-		}
-		
-		if (relX-1 >= 0) {
-			if (currentChunk.get(relX-1).get(relZ).size() > coords.getY()) {
-				Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX()-1, coords.getY(), coords.getZ());
-				if (!transparentBlockIDs.contains(currentChunk.get(relX-1).get(relZ).get(coords.getY()))) {
-					visibleFaces[3] = false;
-					numVisibleFaces--;
-				}else if(currentChunk.get(relX-1).get(relZ).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
-					visibleFaces[3] = false;
-					numVisibleFaces--;
-				}
-			}
-		}else {
-			adjacentChunk = gen.getChunk(chunkX-1, chunkZ);
-			if (adjacentChunk.size() != 0) {
-				if (adjacentChunk.get(15).get(relZ).size() > coords.getY()) {
-					Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX()-1, coords.getY(), coords.getZ());
-					if (!transparentBlockIDs.contains(adjacentChunk.get(15).get(relZ).get(coords.getY()))) {
-						visibleFaces[3] = false;
-						numVisibleFaces--;
-					}else if(adjacentChunk.get(15).get(relZ).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
-						visibleFaces[3] = false;
-						numVisibleFaces--;
-					}
-				}
-			}
-		}
-		if (relZ-1 >= 0) {
-			if (currentChunk.get(relX).get(relZ-1).size() > coords.getY()) {
-				Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()-1);
-				if (!transparentBlockIDs.contains(currentChunk.get(relX).get(relZ-1).get(coords.getY()))) {
-					visibleFaces[1] = false;
-					numVisibleFaces--;
-				}else if(currentChunk.get(relX).get(relZ-1).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
-					visibleFaces[1] = false;
-					numVisibleFaces--;
-				}
-			}
-		}else {
-			adjacentChunk = gen.getChunk(chunkX, chunkZ-1);
-			if (adjacentChunk.size() != 0) {
-				if (adjacentChunk.get(relX).get(15).size() > coords.getY()) {
-					Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()-1);
-					if (!transparentBlockIDs.contains(adjacentChunk.get(relX).get(15).get(coords.getY()))) {
-						visibleFaces[1] = false;
-						numVisibleFaces--;
-					}else if(adjacentChunk.get(relX).get(15).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
-						visibleFaces[1] = false;
-						numVisibleFaces--;
-					}
-				}
-			}
-		}
-		if (relX+1 < 16) {
-			if (currentChunk.get(relX+1).get(relZ).size() > coords.getY()) {
-				Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX()+1, coords.getY(), coords.getZ());
-				if (!transparentBlockIDs.contains(currentChunk.get(relX+1).get(relZ).get(coords.getY()))) {
-					visibleFaces[2] = false;
-					numVisibleFaces--;
-				}else if(currentChunk.get(relX+1).get(relZ).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
-					visibleFaces[2] = false;
-					numVisibleFaces--;
-				}
-			}
-		}else {
-			adjacentChunk = gen.getChunk(chunkX+1, chunkZ);
-			if (adjacentChunk.size() != 0) {
-				if (adjacentChunk.get(0).get(relZ).size() > coords.getY()) {
-					Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX()+1, coords.getY(), coords.getZ());
-					if (!transparentBlockIDs.contains(adjacentChunk.get(0).get(relZ).get(coords.getY()))) {
-						visibleFaces[2] = false;
-						numVisibleFaces--;
-					}else if(adjacentChunk.get(0).get(relZ).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
-						visibleFaces[2] = false;
-						numVisibleFaces--;
-					}
-				}
-			}
-		}
-		if (relZ+1 < 16) {
-			if (currentChunk.get(relX).get(relZ+1).size() > coords.getY()) {
-				Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()+1);
-				if (!transparentBlockIDs.contains(currentChunk.get(relX).get(relZ+1).get(coords.getY()))) {
-					visibleFaces[0] = false;
-					numVisibleFaces--;
-				}else if(currentChunk.get(relX).get(relZ+1).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
-					visibleFaces[0] = false;
-					numVisibleFaces--;
-				}
-			}
-		}else {
-			adjacentChunk = gen.getChunk(chunkX, chunkZ+1);
-			if (adjacentChunk.size() != 0) {
-				if (adjacentChunk.get(relX).get(0).size() > coords.getY()) {
-					Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()+1);
-					if (!transparentBlockIDs.contains(adjacentChunk.get(relX).get(0).get(coords.getY()))) {
-						visibleFaces[0] = false;
-						numVisibleFaces--;
-					}else if(adjacentChunk.get(relX).get(0).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
-						visibleFaces[0] = false;
-						numVisibleFaces--;
-					}
-				}
-			}
-		}
-		if (coords.getY()-1 >= 0) {
-			if (!transparentBlockIDs.contains(currentChunk.get(relX).get(relZ).get(coords.getY()-1))) {
-				visibleFaces[5] = false;
-				numVisibleFaces--;
-			}
-		}
-		if (coords.getY()+1 < currentChunk.get(relX).get(relZ).size()) {
-//			if (!transparentBlockIDs.contains(currentChunk.get(relX).get(relZ).get(coords.getY()+1)) && height == 1) {
-			if(currentChunk.get(relX).get(relZ).get(coords.getY()+1) != 0 && height == 1) {
-				visibleFaces[4] = false;
-				numVisibleFaces--;
-			}
-		}
-	}
+//	protected void adjacentFaceCull() {
+//		numVisibleFaces = 6;
+//		int chunkX, chunkZ;
+//		
+//		chunkX = (int) Math.floor(coords.getX()/16.0);
+//		chunkZ = (int) Math.floor(coords.getZ()/16.0);
+//		
+//		
+//		ArrayList<ArrayList<ArrayList<Short>>> currentChunk = gen.getChunk(chunkX, chunkZ);
+//		ArrayList<ArrayList<ArrayList<Short>>> adjacentChunk;
+//		
+//		
+//		//Finding this cubes position relative to the corner of the chunk it is in
+//		byte relX, relZ;
+//		if (coords.getX() < 0) {
+//			relX = (byte) (15 - (Math.abs(coords.getX()+1) % 16));
+//		}else {
+//			relX = (byte) (Math.abs(coords.getX()) % 16);
+//		}
+//		if (coords.getZ() < 0) {
+//			relZ = (byte) (15 - (Math.abs(coords.getZ()+1) % 16));
+//		}else {
+//			relZ = (byte) (Math.abs(coords.getZ()) % 16);
+//		}
+//		
+//		if (relX-1 >= 0) {
+//			if (currentChunk.get(relX-1).get(relZ).size() > coords.getY()) {
+//				Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX()-1, coords.getY(), coords.getZ());
+//				if (!transparentBlockIDs.contains(currentChunk.get(relX-1).get(relZ).get(coords.getY()))) {
+//					visibleFaces[3] = false;
+//					numVisibleFaces--;
+//				}else if(currentChunk.get(relX-1).get(relZ).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
+//					visibleFaces[3] = false;
+//					numVisibleFaces--;
+//				}
+//			}
+//		}else {
+//			adjacentChunk = gen.getChunk(chunkX-1, chunkZ);
+//			if (adjacentChunk.size() != 0) {
+//				if (adjacentChunk.get(15).get(relZ).size() > coords.getY()) {
+//					Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX()-1, coords.getY(), coords.getZ());
+//					if (!transparentBlockIDs.contains(adjacentChunk.get(15).get(relZ).get(coords.getY()))) {
+//						visibleFaces[3] = false;
+//						numVisibleFaces--;
+//					}else if(adjacentChunk.get(15).get(relZ).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
+//						visibleFaces[3] = false;
+//						numVisibleFaces--;
+//					}
+//				}
+//			}
+//		}
+//		if (relZ-1 >= 0) {
+//			if (currentChunk.get(relX).get(relZ-1).size() > coords.getY()) {
+//				Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()-1);
+//				if (!transparentBlockIDs.contains(currentChunk.get(relX).get(relZ-1).get(coords.getY()))) {
+//					visibleFaces[1] = false;
+//					numVisibleFaces--;
+//				}else if(currentChunk.get(relX).get(relZ-1).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
+//					visibleFaces[1] = false;
+//					numVisibleFaces--;
+//				}
+//			}
+//		}else {
+//			adjacentChunk = gen.getChunk(chunkX, chunkZ-1);
+//			if (adjacentChunk.size() != 0) {
+//				if (adjacentChunk.get(relX).get(15).size() > coords.getY()) {
+//					Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()-1);
+//					if (!transparentBlockIDs.contains(adjacentChunk.get(relX).get(15).get(coords.getY()))) {
+//						visibleFaces[1] = false;
+//						numVisibleFaces--;
+//					}else if(adjacentChunk.get(relX).get(15).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
+//						visibleFaces[1] = false;
+//						numVisibleFaces--;
+//					}
+//				}
+//			}
+//		}
+//		if (relX+1 < 16) {
+//			if (currentChunk.get(relX+1).get(relZ).size() > coords.getY()) {
+//				Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX()+1, coords.getY(), coords.getZ());
+//				if (!transparentBlockIDs.contains(currentChunk.get(relX+1).get(relZ).get(coords.getY()))) {
+//					visibleFaces[2] = false;
+//					numVisibleFaces--;
+//				}else if(currentChunk.get(relX+1).get(relZ).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
+//					visibleFaces[2] = false;
+//					numVisibleFaces--;
+//				}
+//			}
+//		}else {
+//			adjacentChunk = gen.getChunk(chunkX+1, chunkZ);
+//			if (adjacentChunk.size() != 0) {
+//				if (adjacentChunk.get(0).get(relZ).size() > coords.getY()) {
+//					Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX()+1, coords.getY(), coords.getZ());
+//					if (!transparentBlockIDs.contains(adjacentChunk.get(0).get(relZ).get(coords.getY()))) {
+//						visibleFaces[2] = false;
+//						numVisibleFaces--;
+//					}else if(adjacentChunk.get(0).get(relZ).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
+//						visibleFaces[2] = false;
+//						numVisibleFaces--;
+//					}
+//				}
+//			}
+//		}
+//		if (relZ+1 < 16) {
+//			if (currentChunk.get(relX).get(relZ+1).size() > coords.getY()) {
+//				Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()+1);
+//				if (!transparentBlockIDs.contains(currentChunk.get(relX).get(relZ+1).get(coords.getY()))) {
+//					visibleFaces[0] = false;
+//					numVisibleFaces--;
+//				}else if(currentChunk.get(relX).get(relZ+1).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
+//					visibleFaces[0] = false;
+//					numVisibleFaces--;
+//				}
+//			}
+//		}else {
+//			adjacentChunk = gen.getChunk(chunkX, chunkZ+1);
+//			if (adjacentChunk.size() != 0) {
+//				if (adjacentChunk.get(relX).get(0).size() > coords.getY()) {
+//					Coord<Integer> fluidCheck = new Coord<Integer>(coords.getX(), coords.getY(), coords.getZ()+1);
+//					if (!transparentBlockIDs.contains(adjacentChunk.get(relX).get(0).get(coords.getY()))) {
+//						visibleFaces[0] = false;
+//						numVisibleFaces--;
+//					}else if(adjacentChunk.get(relX).get(0).get(coords.getY()) == 6 && gen.liquids.containsKey(fluidCheck) && gen.liquids.get(fluidCheck) >= height) {
+//						visibleFaces[0] = false;
+//						numVisibleFaces--;
+//					}
+//				}
+//			}
+//		}
+//		if (coords.getY()-1 >= 0) {
+//			if (!transparentBlockIDs.contains(currentChunk.get(relX).get(relZ).get(coords.getY()-1))) {
+//				visibleFaces[5] = false;
+//				numVisibleFaces--;
+//			}
+//		}
+//		if (coords.getY()+1 < currentChunk.get(relX).get(relZ).size()) {
+////			if (!transparentBlockIDs.contains(currentChunk.get(relX).get(relZ).get(coords.getY()+1)) && height == 1) {
+//			if(currentChunk.get(relX).get(relZ).get(coords.getY()+1) != 0 && height == 1) {
+//				visibleFaces[4] = false;
+//				numVisibleFaces--;
+//			}
+//		}
+//	}
 }
