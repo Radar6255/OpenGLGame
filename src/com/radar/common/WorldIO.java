@@ -10,6 +10,7 @@ import java.util.Scanner;
 
 import com.radar.client.world.Coord;
 import com.radar.client.world.Coord2D;
+import com.radar.client.world.Dimension;
 import com.radar.client.world.WorldGen;
 
 /**
@@ -57,7 +58,7 @@ public class WorldIO {
 		// Saving edited chunks
 		for (Coord2D<Integer> pos: editedChunks) {
 			out.println(pos.getX()+" "+pos.getZ());
-			ArrayList<ArrayList<ArrayList<Short>>> current = gen.getChunk(pos.getX(), pos.getZ());
+			ArrayList<ArrayList<ArrayList<Short>>> current = gen.getChunk(pos.getX(), pos.getZ(), Dimension.NORMAL);
 			
 			for (int x = 0; x < 16; x++) {
 				out.print(":");

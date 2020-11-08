@@ -20,6 +20,7 @@ import com.jogamp.opengl.GL2;
 import com.radar.client.window.WindowUpdates;
 import com.radar.client.world.Coord;
 import com.radar.client.world.Coord2D;
+import com.radar.client.world.Dimension;
 import com.radar.client.world.WorldGen;
 import com.radar.common.Protocol;
 
@@ -42,6 +43,8 @@ public class Player implements KeyListener, MouseListener, Protocol{
 	 * Block ID of the block to place
 	 */
 	private short currentlyPlacing = 1;
+	
+	public Dimension currentDimesnion;
 	
 	/**
 	 * Velocity of the player
@@ -76,7 +79,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 	/**
 	 * Booleans to keep track of what buttons are currently pressed
 	 */
-	boolean w, a, s, d, space, shift, breakB, place;
+	boolean w, a, s, d, space, shift, breakB, place, c;
 	
 	/**
 	 * Boolean to control whether the game is paused or not,
@@ -114,6 +117,8 @@ public class Player implements KeyListener, MouseListener, Protocol{
 		
 		w = false; a = false; s = false; d = false; space = false; shift = false; breakB = false; place = false;
 		jump = false;
+		
+		this.currentDimesnion = Dimension.NORMAL;
 	}
 	
 	/**
@@ -162,6 +167,15 @@ public class Player implements KeyListener, MouseListener, Protocol{
 		acceleration.setY(-0.01f);
 //		acceleration.setY(0f);
 		acceleration.setZ(0f);
+		
+		if (c) {
+			if (this.currentDimesnion == Dimension.NORMAL) {
+				this.currentDimesnion = Dimension.TIME;
+			}else {
+				this.currentDimesnion = Dimension.NORMAL;
+			}
+			c = false;
+		}
 		
 		//Foward backward movement
 		if (w) {
@@ -233,15 +247,11 @@ public class Player implements KeyListener, MouseListener, Protocol{
 		//X Friction
 		if (Math.abs(velocity.getX()) > 0) {
 			velocity.setX(velocity.getX()-0.5f*velocity.getX());
-		}else {
-//			velocity.setX(velocity.getX()-0.5f*velocity.getX());
 		}
 		
 		//Z Friction
 		if (Math.abs(velocity.getZ()) > 0) {
 			velocity.setZ(velocity.getZ()-0.5f*velocity.getZ());
-		}else {
-//			velocity.setZ(velocity.getZ()-0.5f*velocity.getZ());
 		}
 		
 		collision(xChange, yChange, zChange, window);
@@ -278,7 +288,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			int chunkX = (int) Math.floor(cx/16.0);
 			int chunkZ = (int) Math.floor(cz/16.0);
 			
-			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.getChunk(chunkX, chunkZ);
+			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.getChunk(chunkX, chunkZ, Dimension.NORMAL);
 //			Coord<Integer> collision = pointCollision(cx, cy, cz, current);
 			if (current != null) {
 				int relX = (int) cx % 16;
@@ -593,7 +603,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			int chunkZ = (int) Math.floor(cz/16.0);
 			
 			
-			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.getChunk(chunkX, chunkZ);
+			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.getChunk(chunkX, chunkZ, Dimension.NORMAL);
 			Coord<Integer> collisionPoint = pointCollision(cx, cy, cz, current);
 			if (collisionPoint != null) {
 				if (current.get(collisionPoint.getX()).get(collisionPoint.getZ()).size() > collisionPoint.getY() && collisionPoint.getY() > 0 && current.get(collisionPoint.getX()).get(collisionPoint.getZ()).get(collisionPoint.getY()) != 0){
@@ -661,7 +671,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			int chunkX = (int) Math.floor(cx/16.0);
 			int chunkZ = (int) Math.floor(cz/16.0);
 			
-			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.getChunk(chunkX, chunkZ);
+			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.getChunk(chunkX, chunkZ, Dimension.NORMAL);
 			
 			Coord<Integer> collisionPoint = pointCollision(cx, cy, cz, current);
 			if (collisionPoint != null) {
@@ -693,7 +703,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 						relZ = (int) cz % 16;
 					}
 					
-					current = worldGen.getChunk(chunkX, chunkZ);
+					current = worldGen.getChunk(chunkX, chunkZ, Dimension.NORMAL);
 					collisionPoint = new Coord<Integer>(relX, (int) cy, relZ);
 					
 					while (current.get(collisionPoint.getX()).get(collisionPoint.getZ()).size() <= collisionPoint.getY()) {
@@ -778,6 +788,9 @@ public class Player implements KeyListener, MouseListener, Protocol{
 		case KeyEvent.VK_SHIFT:
 			shift = true;
 			break;
+		case KeyEvent.VK_C:
+			c = true;
+			break;
 		case KeyEvent.VK_1:
 			currentlyPlacing = 1;
 			break;
@@ -813,6 +826,9 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			break;
 		case KeyEvent.VK_D:
 			d = false;
+			break;
+		case KeyEvent.VK_C:
+			c = false;
 			break;
 		case KeyEvent.VK_SPACE:
 			space = false;

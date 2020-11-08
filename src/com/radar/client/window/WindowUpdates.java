@@ -12,6 +12,7 @@ import com.radar.client.Player;
 import com.radar.client.world.BlockUpdateHandler;
 import com.radar.client.world.Chunk;
 import com.radar.client.world.Coord2D;
+import com.radar.client.world.Dimension;
 import com.radar.client.world.TextureMap;
 import com.radar.client.world.WorldGen;
 import com.radar.client.world.Block.Cube;
@@ -27,12 +28,20 @@ public class WindowUpdates implements GLEventListener {
 	 */
 	private HashMap<Coord2D<Integer>,Chunk> chunks;
 	
+	private HashMap<Coord2D<Integer>,Chunk> timeChunks;
+	
+	
 	private LinkedList<Chunk> chunksToSort;
+	
+	private LinkedList<Chunk> timeChunksToSort;
 	
 	/**
 	 * List of chunks waiting to be rendered
 	 */
 	private LinkedList<Chunk> chunkQueue;
+	
+	
+	private LinkedList<Chunk> timeChunkQueue;
 	
 	/**
 	 * Used to change the perspective of the window
@@ -90,6 +99,10 @@ public class WindowUpdates implements GLEventListener {
 		chunks = new HashMap<Coord2D<Integer>,Chunk>();
 		chunksToSort = new LinkedList<>();
 		chunkQueue = new LinkedList<Chunk>();
+		
+		timeChunks = new HashMap<Coord2D<Integer>,Chunk>();
+		timeChunksToSort = new LinkedList<>();
+		timeChunkQueue = new LinkedList<Chunk>();
 	}
 	
 	public void addUpdate(Updateable update) {
@@ -159,10 +172,21 @@ public class WindowUpdates implements GLEventListener {
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, new float[] {0.0f, 0.0f, 0.0f, 0.0f}, 0);
 //        gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, 100.0f);
 
-		chunksToSort.sort(null);
-		for (Chunk chunk: chunksToSort) {
-			chunk.render(gl);
+		switch(player.currentDimesnion) {
+		case TIME:
+			timeChunksToSort.sort(null);
+			for (Chunk timeChunk: timeChunksToSort) {
+				timeChunk.render(gl);
+			}
+			break;
+		default:
+			chunksToSort.sort(null);
+			for (Chunk chunk: chunksToSort) {
+				chunk.render(gl);
+			}
 		}
+		
+		
 		gl.glFlush();
 		
 		gl.glDisableClientState(GL2.GL_TEXTURE_COORD_ARRAY);
@@ -198,8 +222,11 @@ public class WindowUpdates implements GLEventListener {
 		if (!adding && !chunkQueue.isEmpty()) {
 			clearing = true;
 			Chunk temp = chunkQueue.pop();
+			Chunk timeTemp = timeChunkQueue.pop();
 			chunks.put(new Coord2D<Integer>(temp.getX(), temp.getZ()), temp);
+			timeChunks.put(new Coord2D<Integer>(timeTemp.getX(), timeTemp.getZ()), timeTemp);
 			chunksToSort.add(temp);
+			timeChunksToSort.add(timeTemp);
 			clearing = false;
 		}
 		
@@ -207,8 +234,12 @@ public class WindowUpdates implements GLEventListener {
 			if (chunk.distance(player.getPos().getX(), player.getPos().getZ()) > VideoSettings.renderDistance) {
 				gen.removeChunk(chunk.getX(), chunk.getZ());
 				chunk.delete(gl);
+				Chunk timeChunk = timeChunks.get(new Coord2D<Integer>(chunk.getX(), chunk.getZ()));
+				timeChunk.delete(gl);
 				chunks.remove(new Coord2D<Integer>(chunk.getX(),chunk.getZ()));
+				timeChunks.remove(new Coord2D<Integer>(chunk.getX(),chunk.getZ()));
 				chunksToSort.remove(chunk);
+				timeChunksToSort.remove(timeChunk);
 				chunk = null;
 				break;
 			}
@@ -233,6 +264,10 @@ public class WindowUpdates implements GLEventListener {
 		for (Chunk chunk: chunks.values()) {
 			chunk.delete(gl);
 		}
+		for (Chunk timeChunk: timeChunks.values()) {
+			timeChunk.delete(gl);
+		}
+		
 		System.out.println("Deleted remaining chunks");
 		
 		textures.close(gl);
@@ -300,11 +335,12 @@ public class WindowUpdates implements GLEventListener {
 	 * Adds a chunk to be rendered to this window
 	 * @param chunk The chunk to add to the render
 	 */
-	public void addChunk(Chunk chunk) {
+	public void addChunk(Chunk chunk, Chunk timeChunk) {
 		while (clearing) {}
 		if (!clearing) {
 			adding = true;
 			chunkQueue.add(chunk);
+			timeChunkQueue.add(timeChunk);
 			adding = false;
 		}
 	}

@@ -27,6 +27,11 @@ public class WorldGen implements Runnable {
 	volatile HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>> world;
 	
 	/**
+	 * Holds the data for all the blocks in the world that contains time
+	 */
+	volatile HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>> timeWorld;
+	
+	/**
 	 * Holds height of all liquids in the world
 	 */
 	public HashMap<Coord<Integer>,Float> liquids;
@@ -70,6 +75,8 @@ public class WorldGen implements Runnable {
 	 */
 	public HashSet<Coord2D<Integer>> editedChunks;
 	
+	public int timeWorldUpscale = 2;
+	
 	public boolean write = true;
 	
 	/**
@@ -99,6 +106,7 @@ public class WorldGen implements Runnable {
 		editedChunks = new HashSet<>();
 
 		world = new HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>>();
+		timeWorld = new HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>>();
 		liquids = new HashMap<>();
 		
 		if (!Game.MULTIPLAYER) {
@@ -136,8 +144,12 @@ public class WorldGen implements Runnable {
 	 * @param z The z position of the chunk to get
 	 * @return The chunk in the world at the desired position, null if it doesn't exist
 	 */
-	public ArrayList<ArrayList<ArrayList<Short>>> getChunk(int x, int z){
-		return world.get(new Coord2D<Integer>(x, z));
+	public ArrayList<ArrayList<ArrayList<Short>>> getChunk(int x, int z, Dimension dim){
+		if (dim == Dimension.TIME) {
+			return timeWorld.get(new Coord2D<Integer>(x, z));
+		}else {
+			return world.get(new Coord2D<Integer>(x, z));
+		}
 	}
 	
 	public void putChunk(int x, int z, ArrayList<ArrayList<ArrayList<Short>>> data) {
@@ -160,9 +172,9 @@ public class WorldGen implements Runnable {
 	 * @param chunkZ The z position of the chunk, relative to chunks not block positions
 	 * @return A new chunk with the cube objects in it to render
 	 */
-	public Chunk loadChunk(int chunkX, int chunkZ) {
+	public Chunk loadChunk(int chunkX, int chunkZ, Dimension dim) {
 		visibleChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
-		Chunk creating = new Chunk(chunkX, chunkZ, this, window);
+		Chunk creating = new Chunk(chunkX, chunkZ, this, window, dim);
 		return creating;
 	}
 	
@@ -178,7 +190,7 @@ public class WorldGen implements Runnable {
 		int chunkX = (int) Math.floor(Math.floor(x)/16.0);
 		int chunkZ = (int) Math.floor(Math.floor(z)/16.0);
 		
-		ArrayList<ArrayList<ArrayList<Short>>> current = getChunk(chunkX, chunkZ);
+		ArrayList<ArrayList<ArrayList<Short>>> current = getChunk(chunkX, chunkZ, Dimension.NORMAL);
 		
 		if (current == null) {
 			return -1;
@@ -213,7 +225,7 @@ public class WorldGen implements Runnable {
 	 * @param blockID The blockID be placed at this position
 	 */
 	public void placeBlock(float x, float y, float z, int chunkX, int chunkZ, short blockID) {
-		ArrayList<ArrayList<ArrayList<Short>>> current = getChunk(chunkX, chunkZ);
+		ArrayList<ArrayList<ArrayList<Short>>> current = getChunk(chunkX, chunkZ, Dimension.NORMAL);
 		
 		if (current == null) {
 			return;
@@ -262,34 +274,50 @@ public class WorldGen implements Runnable {
 						else if (!world.containsKey(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ))){
 							ArrayList<ArrayList<ArrayList<Short>>> chunk = new ArrayList<ArrayList<ArrayList<Short>>>();
 							world.put(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ), chunk);
+							ArrayList<ArrayList<ArrayList<Short>>> chunk2 = new ArrayList<ArrayList<ArrayList<Short>>>();
+							timeWorld.put(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ), chunk2);
 						
 							for (int cubeX = 0; cubeX < 16; cubeX++) {
 								world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).add(new ArrayList<ArrayList<Short>>());
+								timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).add(new ArrayList<ArrayList<Short>>());
 								for (int cubeZ = 0; cubeZ < 16; cubeZ++) {
 									world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).add(new ArrayList<Short>());
+									timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).add(new ArrayList<Short>());
 								
 									int cubeXPos = 16*(currentX + playerChunkX)+cubeX;
 									int cubeZPos = 16*(currentZ + playerChunkZ)+cubeZ;
 									
 									world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 4);
+									timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 4);
 									
 //									for (int i = 0; i < (int) Math.sqrt(3000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2)); i++) {
 //									for (int i = 0; i < (int) 30+(15*(Math.cos(0.1*cubeXPos)))+(15*(Math.sin(0.1*cubeZPos))); i++) {
 									for (int i = 0; i < (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32)-5; i++) {
 										world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 2);
 									}
+									for (int i = 0; i < (int) (80*perlin((float) cubeXPos*0.03f*(1.0f/timeWorldUpscale), (float)cubeZPos*0.03f*(1.0f/timeWorldUpscale))+32)-5; i++) {
+										timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 2);
+									}
 //									for (int i = (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32)-5; i < (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32); i++) {
 									for (int i = 0; i < (int) Math.sqrt(3000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2))-5; i++) {
 										world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 3);
 									}
+									for (int i = 0; i < (int) Math.sqrt(3000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2))-5; i++) {
+										timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 3);
+									}
+									
 									world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 1);
+									timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 1);
 									if(cubeX + cubeZ == 0 || cubeX + cubeZ == 1) {
 										world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 4);
+									}
+									if(cubeX + cubeZ == 0 || cubeX + cubeZ == 1) {
+										timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 4);
 									}
 								}
 							}
 						}else if (Math.abs(currentX) < renderDist && Math.abs(currentZ) < renderDist) {
-							window.addChunk(loadChunk(currentX+playerChunkX, currentZ+playerChunkZ));
+							window.addChunk(loadChunk(currentX+playerChunkX, currentZ+playerChunkZ, Dimension.NORMAL), loadChunk(currentX+playerChunkX, currentZ+playerChunkZ, Dimension.TIME));
 						}
 					}
 				}

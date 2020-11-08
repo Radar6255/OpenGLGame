@@ -7,6 +7,7 @@ import com.jogamp.opengl.GL2;
 import com.radar.client.window.WindowUpdates;
 import com.radar.client.world.Coord;
 import com.radar.client.world.Coord2D;
+import com.radar.client.world.Dimension;
 import com.radar.client.world.WorldGen;
 import com.radar.common.PointConversion;
 
@@ -44,15 +45,15 @@ public class Fluid extends Cube implements Updateable{
 	 * @param height The height of the fluid at this point
 	 * @param gen The world generation, used to get chunk data for liquid spread
 	 */
-	public Fluid(int x, int y, int z, short[] faceTextures, float height, WorldGen gen) {
-		super(x, y, z, faceTextures, gen, false);
+	public Fluid(int x, int y, int z, short[] faceTextures, float height, WorldGen gen, Dimension dim) {
+		super(x, y, z, faceTextures, gen, dim, false);
 		setHeight(height);
 		adjacentFaceCull();
 		super.setVerticies(verts);
 		
 	}
-	public Fluid(int x, int y, int z, short[] faceTextures, WorldGen gen) {
-		super(x, y, z, faceTextures, gen, false);
+	public Fluid(int x, int y, int z, short[] faceTextures, WorldGen gen, Dimension dim) {
+		super(x, y, z, faceTextures, gen, dim, false);
 		adjacentFaceCull();
 		super.setVerticies(verts);
 	}
@@ -140,7 +141,7 @@ public class Fluid extends Cube implements Updateable{
 		chunkX = (int) Math.floor(coords.getX()/16.0);
 		chunkZ = (int) Math.floor(coords.getZ()/16.0);
 		
-		ArrayList<ArrayList<ArrayList<Short>>> currentChunk = gen.getChunk(chunkX, chunkZ);
+		ArrayList<ArrayList<ArrayList<Short>>> currentChunk = gen.getChunk(chunkX, chunkZ, Dimension.NORMAL);
 		ArrayList<ArrayList<ArrayList<Short>>> adjacentChunk;
 		
 		//Finding this cubes position relative to the corner of the chunk it is in
@@ -267,7 +268,7 @@ public class Fluid extends Cube implements Updateable{
 				window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX-1, coords.getY(), relZ));
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX-1, chunkZ);
+			adjacentChunk = gen.getChunk(chunkX-1, chunkZ, this.dim);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(15).get(relZ).size() > coords.getY()) {
 					if (adjacentChunk.get(15).get(relZ).get(coords.getY()) == 0) {
@@ -309,7 +310,7 @@ public class Fluid extends Cube implements Updateable{
 				window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX, coords.getY(), relZ-1));
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX, chunkZ-1);
+			adjacentChunk = gen.getChunk(chunkX, chunkZ-1, this.dim);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(relX).get(15).size() > coords.getY()) {
 					if (adjacentChunk.get(relX).get(15).get(coords.getY()) == 0) {
@@ -351,7 +352,7 @@ public class Fluid extends Cube implements Updateable{
 				window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX+1, coords.getY(), relZ));
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX+1, chunkZ);
+			adjacentChunk = gen.getChunk(chunkX+1, chunkZ, this.dim);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(0).get(relZ).size() > coords.getY()) {
 					if (adjacentChunk.get(0).get(relZ).get(coords.getY()) == 0) {
@@ -393,7 +394,7 @@ public class Fluid extends Cube implements Updateable{
 				window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(relX, coords.getY(), relZ+1));
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX, chunkZ+1);
+			adjacentChunk = gen.getChunk(chunkX, chunkZ+1, this.dim);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(relX).get(0).size() > coords.getY()) {
 					if (adjacentChunk.get(relX).get(0).get(coords.getY()) == 0) {
@@ -439,7 +440,7 @@ public class Fluid extends Cube implements Updateable{
 				}
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX-1, chunkZ);
+			adjacentChunk = gen.getChunk(chunkX-1, chunkZ, this.dim);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(15).get(relZ).size() > coords.getY()) {
 					if (adjacentChunk.get(15).get(relZ).get(coords.getY()) == 6) {
@@ -469,7 +470,7 @@ public class Fluid extends Cube implements Updateable{
 				}
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX, chunkZ-1);
+			adjacentChunk = gen.getChunk(chunkX, chunkZ-1, this.dim);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(relX).get(15).size() > coords.getY()) {
 					if (adjacentChunk.get(relX).get(15).get(coords.getY()) == 6) {
@@ -499,7 +500,7 @@ public class Fluid extends Cube implements Updateable{
 				}
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX+1, chunkZ);
+			adjacentChunk = gen.getChunk(chunkX+1, chunkZ, this.dim);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(0).get(relZ).size() > coords.getY()) {
 					if (adjacentChunk.get(0).get(relZ).get(coords.getY()) == 6) {
@@ -529,7 +530,7 @@ public class Fluid extends Cube implements Updateable{
 				}
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX, chunkZ+1);
+			adjacentChunk = gen.getChunk(chunkX, chunkZ+1, this.dim);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(relX).get(0).size() > coords.getY()) {
 					if (adjacentChunk.get(relX).get(0).get(coords.getY()) == 6) {
@@ -566,7 +567,7 @@ public class Fluid extends Cube implements Updateable{
 				spaceSpread++;
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX-1, chunkZ);
+			adjacentChunk = gen.getChunk(chunkX-1, chunkZ, this.dim);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(15).get(relZ).size() > coords.getY()) {
 					if (adjacentChunk.get(15).get(relZ).get(coords.getY()) == 0) {
@@ -594,7 +595,7 @@ public class Fluid extends Cube implements Updateable{
 				spaceSpread++;
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX, chunkZ-1);
+			adjacentChunk = gen.getChunk(chunkX, chunkZ-1, this.dim);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(relX).get(15).size() > coords.getY()) {
 					if (adjacentChunk.get(relX).get(15).get(coords.getY()) == 0) {
@@ -622,7 +623,7 @@ public class Fluid extends Cube implements Updateable{
 				spaceSpread++;
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX+1, chunkZ);
+			adjacentChunk = gen.getChunk(chunkX+1, chunkZ, this.dim);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(0).get(relZ).size() > coords.getY()) {
 					if (adjacentChunk.get(0).get(relZ).get(coords.getY()) == 0) {
@@ -650,7 +651,7 @@ public class Fluid extends Cube implements Updateable{
 				spaceSpread++;
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX, chunkZ+1);
+			adjacentChunk = gen.getChunk(chunkX, chunkZ+1, this.dim);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(relX).get(0).size() > coords.getY()) {
 					if (adjacentChunk.get(relX).get(0).get(coords.getY()) == 0) {

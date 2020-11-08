@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 
 import com.radar.client.world.Coord;
+import com.radar.client.world.Dimension;
 import com.radar.client.world.TextureMap;
 import com.radar.client.world.WorldGen;
 
@@ -71,16 +72,19 @@ public abstract class Cube {
 	 */
 	protected WorldGen gen;
 	
+	protected Dimension dim;
+	
 	/**
 	 * Constructor to create a cube
 	 * @param x X Position of the cube
 	 * @param y Y Position of the cube
 	 * @param z Z Position of the cube
 	 */
-	public Cube(int x, int y, int z, short[] faceTextures, WorldGen gen) {
+	public Cube(int x, int y, int z, short[] faceTextures, WorldGen gen, Dimension dim) {
 		coords = new Coord<Integer>(x,y,z);
 		this.faceTextures = faceTextures;
 		this.gen = gen;
+		this.dim = dim;
 		
 		adjacentFaceCull();
 		
@@ -101,10 +105,11 @@ public abstract class Cube {
 	 * @param y Y Position of the cube
 	 * @param z Z Position of the cube
 	 */
-	public Cube(int x, int y, int z, short[] faceTextures, WorldGen gen, boolean doFaceCull) {
+	public Cube(int x, int y, int z, short[] faceTextures, WorldGen gen, Dimension dim, boolean doFaceCull) {
 		coords = new Coord<Integer>(x,y,z);
 		this.faceTextures = faceTextures;
 		this.gen = gen;
+		this.dim = dim;
 		
 		if(doFaceCull) {
 			adjacentFaceCull();
@@ -298,7 +303,7 @@ public abstract class Cube {
 		chunkZ = (int) Math.floor(coords.getZ()/16.0);
 		
 		
-		ArrayList<ArrayList<ArrayList<Short>>> currentChunk = gen.getChunk(chunkX, chunkZ);
+		ArrayList<ArrayList<ArrayList<Short>>> currentChunk = gen.getChunk(chunkX, chunkZ, dim);
 		ArrayList<ArrayList<ArrayList<Short>>> adjacentChunk;
 		
 		
@@ -323,7 +328,7 @@ public abstract class Cube {
 				}
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX-1, chunkZ);
+			adjacentChunk = gen.getChunk(chunkX-1, chunkZ, dim);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(15).get(relZ).size() > coords.getY()) {
 					if (!transparentBlockIDs.contains(adjacentChunk.get(15).get(relZ).get(coords.getY()))) {
@@ -341,7 +346,7 @@ public abstract class Cube {
 				}
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX, chunkZ-1);
+			adjacentChunk = gen.getChunk(chunkX, chunkZ-1, dim);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(relX).get(15).size() > coords.getY()) {
 					if (!transparentBlockIDs.contains(adjacentChunk.get(relX).get(15).get(coords.getY()))) {
@@ -359,7 +364,7 @@ public abstract class Cube {
 				}
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX+1, chunkZ);
+			adjacentChunk = gen.getChunk(chunkX+1, chunkZ, dim);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(0).get(relZ).size() > coords.getY()) {
 					if (!transparentBlockIDs.contains(adjacentChunk.get(0).get(relZ).get(coords.getY()))) {
@@ -377,7 +382,7 @@ public abstract class Cube {
 				}
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX, chunkZ+1);
+			adjacentChunk = gen.getChunk(chunkX, chunkZ+1, dim);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(relX).get(0).size() > coords.getY()) {
 					if (!transparentBlockIDs.contains(adjacentChunk.get(relX).get(0).get(coords.getY()))) {
