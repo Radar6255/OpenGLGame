@@ -24,12 +24,7 @@ public class WorldGen implements Runnable {
 	/**
 	 * Holds the data for all the blocks in world
 	 */
-	volatile HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>> world;
-	
-	/**
-	 * Holds the data for all the blocks in the world that contains time
-	 */
-	volatile HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>> timeWorld;
+	volatile HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>> worldDim;
 	
 	/**
 	 * Holds height of all liquids in the world
@@ -75,7 +70,7 @@ public class WorldGen implements Runnable {
 	 */
 	public HashSet<Coord2D<Integer>> editedChunks;
 	
-	public int timeWorldUpscale = 2;
+	public static float timeWorldUpscale = 0.5f;
 	
 	public boolean write = true;
 	
@@ -91,27 +86,33 @@ public class WorldGen implements Runnable {
 	
 	private int seed = -1;
 	private WorldIO worldIO;
+	private Dimension dim;
 	/**
 	 * Constructor to make the world generation thread and start it
 	 * @param player The player to generate chunks for
 	 * @param window The window to display the chunks on
 	 */
-	public WorldGen(Player player, int seed, WindowUpdates window) {
+	public WorldGen(Player player, int seed, WindowUpdates window, Dimension dim) {
 		this.player = player;
-		player.addGen(this);
+		player.addGen(dim, this);
 		this.window = window;
+		this.dim = dim;
+		
 		worldIO = new WorldIO();
 		running = true;
 		visibleChunks = new HashSet<>();
 		editedChunks = new HashSet<>();
 
-		world = new HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>>();
-		timeWorld = new HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>>();
+		worldDim = new HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>>();
 		liquids = new HashMap<>();
 		
 		if (!Game.MULTIPLAYER) {
-			saved = worldIO.load("world.dat", this);
-			seed = worldIO.getSeed();
+			saved = worldIO.load("dimension" + dim + ".dat", this);
+			int seed_temp = worldIO.getSeed();
+			if(seed_temp != -1) {
+				seed = seed_temp;
+				window.addSeed(seed);
+			}
 			if(saved == null) {
 				write = false;
 			}
@@ -128,14 +129,14 @@ public class WorldGen implements Runnable {
 	 */
 	public void stop() {
 		if(write)
-			worldIO.save(world, editedChunks, this, seed);
+			worldIO.save(worldDim, editedChunks, this, seed, dim);
 		running = false;
 		try {
 			thread.join();
 		} catch (InterruptedException e) {
 			System.out.println("World generation thread failed to close correctly");
 		}
-		System.out.println("World generation thread stopped");
+		System.out.println("World generation thread stopped for dimension "+dim);
 	}
 	
 	/**
@@ -144,16 +145,16 @@ public class WorldGen implements Runnable {
 	 * @param z The z position of the chunk to get
 	 * @return The chunk in the world at the desired position, null if it doesn't exist
 	 */
-	public ArrayList<ArrayList<ArrayList<Short>>> getChunk(int x, int z, Dimension dim){
-		if (dim == Dimension.TIME) {
-			return timeWorld.get(new Coord2D<Integer>(x, z));
-		}else {
-			return world.get(new Coord2D<Integer>(x, z));
-		}
+	public ArrayList<ArrayList<ArrayList<Short>>> getChunk(int x, int z){
+//		if (dim == Dimension.TIME) {
+//			return timeWorld.get(new Coord2D<Integer>(x, z));
+//		}else {
+//		}
+		return worldDim.get(new Coord2D<Integer>(x, z));
 	}
 	
 	public void putChunk(int x, int z, ArrayList<ArrayList<ArrayList<Short>>> data) {
-		world.put(new Coord2D<Integer>(x, z), data);
+		worldDim.put(new Coord2D<Integer>(x, z), data);
 //		Thread temp = new Thread({world.put(new Coord2D<Integer>(x, z), data);});
 	}
 	
@@ -190,7 +191,7 @@ public class WorldGen implements Runnable {
 		int chunkX = (int) Math.floor(Math.floor(x)/16.0);
 		int chunkZ = (int) Math.floor(Math.floor(z)/16.0);
 		
-		ArrayList<ArrayList<ArrayList<Short>>> current = getChunk(chunkX, chunkZ, Dimension.NORMAL);
+		ArrayList<ArrayList<ArrayList<Short>>> current = getChunk(chunkX, chunkZ);
 		
 		if (current == null) {
 			return -1;
@@ -225,7 +226,7 @@ public class WorldGen implements Runnable {
 	 * @param blockID The blockID be placed at this position
 	 */
 	public void placeBlock(float x, float y, float z, int chunkX, int chunkZ, short blockID) {
-		ArrayList<ArrayList<ArrayList<Short>>> current = getChunk(chunkX, chunkZ, Dimension.NORMAL);
+		ArrayList<ArrayList<ArrayList<Short>>> current = getChunk(chunkX, chunkZ);
 		
 		if (current == null) {
 			return;
@@ -257,6 +258,12 @@ public class WorldGen implements Runnable {
 			float x = pos.getX();
 			float z = pos.getZ();
 			
+			switch(dim) {
+			case TIME:
+				x = x * timeWorldUpscale;
+				z = z * timeWorldUpscale;
+			}
+			
 			int playerChunkX = (int) (x/16);
 			int playerChunkZ = (int) (z/16);
 			
@@ -265,59 +272,103 @@ public class WorldGen implements Runnable {
 					if (!visibleChunks.contains(new Coord2D<Integer>(currentX+playerChunkX, currentZ+playerChunkZ))) {
 						
 						//If the chunk has been loaded from file, use that instead of regenerating the chunk
-						if (saved != null && saved.containsKey(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ))) {
-							world.put(new Coord2D<Integer>(currentX + playerChunkX,currentZ + playerChunkZ), saved.get(new Coord2D<Integer>(currentX + playerChunkX,currentZ + playerChunkZ)));
+						if (saved != null && saved.containsKey(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)) && dim == Dimension.NORMAL) {
+							worldDim.put(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ), saved.get(new Coord2D<Integer>(currentX + playerChunkX,currentZ + playerChunkZ)));
 							saved.remove(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ));
 							editedChunks.add(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ));
+							
+//							//Still need to load Time chunk
+//							ArrayList<ArrayList<ArrayList<Short>>> chunk2 = new ArrayList<ArrayList<ArrayList<Short>>>();
+//							timeWorld.put(new Coord2D<Integer>(currentX + playerChunkX * timeWorldUpscale, currentZ + playerChunkZ * timeWorldUpscale), chunk2);
+//						
+//							for (int cubeX = 0; cubeX < 16; cubeX++) {
+//								timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX * timeWorldUpscale, currentZ + playerChunkZ * timeWorldUpscale)).add(new ArrayList<ArrayList<Short>>());
+//								for (int cubeZ = 0; cubeZ < 16; cubeZ++) {
+//									timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX * timeWorldUpscale, currentZ + playerChunkZ * timeWorldUpscale)).get(cubeX).add(new ArrayList<Short>());
+//								
+//									int cubeXPos = 16*(currentX + playerChunkX)+cubeX;
+//									int cubeZPos = 16*(currentZ + playerChunkZ)+cubeZ;
+//									
+//									timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX * timeWorldUpscale, currentZ + playerChunkZ * timeWorldUpscale)).get(cubeX).get(cubeZ).add((short) 4);
+//									
+//									for (int i = 0; i < (int) (80*perlin((float) cubeXPos*0.03f*(1.0f/timeWorldUpscale), (float)cubeZPos*0.03f*(1.0f/timeWorldUpscale))+32)-5; i++) {
+//										timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX * timeWorldUpscale, currentZ + playerChunkZ * timeWorldUpscale)).get(cubeX).get(cubeZ).add((short) 2);
+//									}
+//									for (int i = 0; i < (int) Math.sqrt(3000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2))-5; i++) {
+//										timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX * timeWorldUpscale, currentZ + playerChunkZ * timeWorldUpscale)).get(cubeX).get(cubeZ).add((short) 3);
+//									}
+//									
+//									timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX * timeWorldUpscale, currentZ + playerChunkZ * timeWorldUpscale)).get(cubeX).get(cubeZ).add((short) 1);
+//									if(cubeX + cubeZ == 0 || cubeX + cubeZ == 1) {
+//										timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX * timeWorldUpscale, currentZ + playerChunkZ * timeWorldUpscale)).get(cubeX).get(cubeZ).add((short) 4);
+//									}
+//								}
+//							}
 						}
 						//TODO Error about null pointer
-						else if (!world.containsKey(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ))){
+						else if (!worldDim.containsKey(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ))){
 							ArrayList<ArrayList<ArrayList<Short>>> chunk = new ArrayList<ArrayList<ArrayList<Short>>>();
-							world.put(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ), chunk);
-							ArrayList<ArrayList<ArrayList<Short>>> chunk2 = new ArrayList<ArrayList<ArrayList<Short>>>();
-							timeWorld.put(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ), chunk2);
+							worldDim.put(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ), chunk);
+//							ArrayList<ArrayList<ArrayList<Short>>> chunk2 = new ArrayList<ArrayList<ArrayList<Short>>>();
+//							timeWorld.put(new Coord2D<Integer>(currentX + playerChunkX * timeWorldUpscale, currentZ + playerChunkZ * timeWorldUpscale), chunk2);
 						
 							for (int cubeX = 0; cubeX < 16; cubeX++) {
-								world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).add(new ArrayList<ArrayList<Short>>());
-								timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).add(new ArrayList<ArrayList<Short>>());
+								worldDim.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).add(new ArrayList<ArrayList<Short>>());
+//								timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX * timeWorldUpscale, currentZ + playerChunkZ * timeWorldUpscale)).add(new ArrayList<ArrayList<Short>>());
 								for (int cubeZ = 0; cubeZ < 16; cubeZ++) {
-									world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).add(new ArrayList<Short>());
-									timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).add(new ArrayList<Short>());
-								
-									int cubeXPos = 16*(currentX + playerChunkX)+cubeX;
-									int cubeZPos = 16*(currentZ + playerChunkZ)+cubeZ;
+									worldDim.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).add(new ArrayList<Short>());
+//									timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX * timeWorldUpscale, currentZ + playerChunkZ * timeWorldUpscale)).get(cubeX).add(new ArrayList<Short>());
+									int cubeXPos, cubeZPos;
+									switch (dim) {
+									case NORMAL:
+										cubeXPos = 16*(currentX + playerChunkX)+cubeX;
+										cubeZPos = 16*(currentZ + playerChunkZ)+cubeZ;
+										break;
+									case TIME:
+										cubeXPos = 16*(currentX + playerChunkX)+cubeX;
+										cubeZPos = 16*(currentZ + playerChunkZ)+cubeZ;
+										break;
+									default:
+										cubeXPos = 16*(currentX + playerChunkX)+cubeX;
+										cubeZPos = 16*(currentZ + playerChunkZ)+cubeZ;
+									}
 									
-									world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 4);
-									timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 4);
+									worldDim.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 4);
+//									timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX * timeWorldUpscale, currentZ + playerChunkZ * timeWorldUpscale)).get(cubeX).get(cubeZ).add((short) 4);
 									
 //									for (int i = 0; i < (int) Math.sqrt(3000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2)); i++) {
 //									for (int i = 0; i < (int) 30+(15*(Math.cos(0.1*cubeXPos)))+(15*(Math.sin(0.1*cubeZPos))); i++) {
-									for (int i = 0; i < (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32)-5; i++) {
-										world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 2);
-									}
-									for (int i = 0; i < (int) (80*perlin((float) cubeXPos*0.03f*(1.0f/timeWorldUpscale), (float)cubeZPos*0.03f*(1.0f/timeWorldUpscale))+32)-5; i++) {
-										timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 2);
-									}
-//									for (int i = (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32)-5; i < (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32); i++) {
-									for (int i = 0; i < (int) Math.sqrt(3000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2))-5; i++) {
-										world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 3);
-									}
-									for (int i = 0; i < (int) Math.sqrt(3000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2))-5; i++) {
-										timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 3);
+									if(dim == Dimension.NORMAL) {
+										for (int i = 0; i < (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32)-5; i++) {
+											worldDim.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 2);
+										}
+									}else {
+										for (int i = 0; i < (int) (80*perlin((float) cubeXPos*0.03f/timeWorldUpscale, (float)cubeZPos*0.03f/timeWorldUpscale)+32)-5; i++) {
+											worldDim.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 2);
+										}
 									}
 									
-									world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 1);
-									timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 1);
+//									for (int i = 0; i < (int) (80*perlin((float) cubeXPos*0.03f*(1.0f/timeWorldUpscale), (float)cubeZPos*0.03f*(1.0f/timeWorldUpscale))+32)-5; i++) {
+//										timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX * timeWorldUpscale, currentZ + playerChunkZ * timeWorldUpscale)).get(cubeX).get(cubeZ).add((short) 2);
+//									}
+//									for (int i = (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32)-5; i < (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32); i++) {
+//									for (int i = 0; i < (int) Math.sqrt(3000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2))-5; i++) {
+//										worldDim.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 3);
+//									}
+//									for (int i = 0; i < (int) Math.sqrt(3000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2))-5; i++) {
+//										timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX * timeWorldUpscale, currentZ + playerChunkZ * timeWorldUpscale)).get(cubeX).get(cubeZ).add((short) 3);
+//									}
+									
+									worldDim.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 1);
+//									timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX * timeWorldUpscale, currentZ + playerChunkZ * timeWorldUpscale)).get(cubeX).get(cubeZ).add((short) 1);
 									if(cubeX + cubeZ == 0 || cubeX + cubeZ == 1) {
-										world.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 4);
-									}
-									if(cubeX + cubeZ == 0 || cubeX + cubeZ == 1) {
-										timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 4);
+										worldDim.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 4);
+//										timeWorld.get(new Coord2D<Integer>(currentX + playerChunkX * timeWorldUpscale, currentZ + playerChunkZ * timeWorldUpscale)).get(cubeX).get(cubeZ).add((short) 4);
 									}
 								}
 							}
 						}else if (Math.abs(currentX) < renderDist && Math.abs(currentZ) < renderDist) {
-							window.addChunk(loadChunk(currentX+playerChunkX, currentZ+playerChunkZ, Dimension.NORMAL), loadChunk(currentX+playerChunkX, currentZ+playerChunkZ, Dimension.TIME));
+							window.addChunk(loadChunk(currentX+playerChunkX, currentZ+playerChunkZ, dim), dim);
 						}
 					}
 				}
@@ -341,6 +392,8 @@ public class WorldGen implements Runnable {
 			rand = new Random(seed);
 		}else {
 			seed = new Random().nextInt();
+			window.addSeed(seed);
+			this.seed = seed;
 			rand = new Random(seed);
 		}
 		gradient = new float[size][size][2];

@@ -111,7 +111,7 @@ public class Chunk implements Comparable<Chunk>{
 		facesToAdd = new LinkedList<>();
 		cubesToModify = new LinkedList<>();
 		fluids = new HashMap<>();
-		
+
 		load(gen, dim);
 	}
 	
@@ -157,7 +157,7 @@ public class Chunk implements Comparable<Chunk>{
 		//TODO Find a more precise way of finding number of blocks in a chunk or get a better guess
 		cubes = new HashMap<>(100);
 		
-		ArrayList<ArrayList<ArrayList<Short>>> chunk = gen.getChunk(x, z, dim);
+		ArrayList<ArrayList<ArrayList<Short>>> chunk = gen.getChunk(x, z);
 		
 		for (int tx = 0; tx < 16; tx++) {
 			for (int tz = 0; tz < 16; tz++) {
@@ -195,7 +195,7 @@ public class Chunk implements Comparable<Chunk>{
 	 */
 	public void load(int x, int y, int z, WorldGen gen) {
 		Dimension dim = Dimension.NORMAL;
-		ArrayList<ArrayList<ArrayList<Short>>> chunk = gen.getChunk(this.x, this.z, Dimension.NORMAL);
+		ArrayList<ArrayList<ArrayList<Short>>> chunk = gen.getChunk(this.x, this.z);
 		Coord2D<Integer> rel = PointConversion.absoluteToRelative(new Coord2D<Integer>(x, z));
 		
 		if(chunk.get(rel.getX()).get(rel.getZ()).size() <= y) {

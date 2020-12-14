@@ -18,7 +18,6 @@ import com.radar.client.world.WorldGen;
  * Class to save and load the world from file
  */
 public class WorldIO {
-	private File saveFile = new File("world.dat");
 	
 	/**
 	 * Used to hold the seed so that the generation can know what seed the world generated with
@@ -43,10 +42,11 @@ public class WorldIO {
 	 * @param gen WorldGen object, used to get the chunks
 	 * @param genSeed The seed this world was generated with
 	 */
-	public void save(HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>> world, HashSet<Coord2D<Integer>> editedChunks, WorldGen gen, int genSeed) {
+	public void save(HashMap<Coord2D<Integer>, ArrayList<ArrayList<ArrayList<Short>>>> world, HashSet<Coord2D<Integer>> editedChunks, WorldGen gen, int genSeed, Dimension dim) {
 		System.out.println("Saving world...");
 		PrintStream out;
 		try {
+			File saveFile = new File("dimension" + dim + ".dat");
 			out = new PrintStream(saveFile);
 		} catch (FileNotFoundException e) {
 			System.out.println("Output file not found, world not saved");
@@ -58,7 +58,7 @@ public class WorldIO {
 		// Saving edited chunks
 		for (Coord2D<Integer> pos: editedChunks) {
 			out.println(pos.getX()+" "+pos.getZ());
-			ArrayList<ArrayList<ArrayList<Short>>> current = gen.getChunk(pos.getX(), pos.getZ(), Dimension.NORMAL);
+			ArrayList<ArrayList<ArrayList<Short>>> current = gen.getChunk(pos.getX(), pos.getZ());
 			
 			for (int x = 0; x < 16; x++) {
 				out.print(":");

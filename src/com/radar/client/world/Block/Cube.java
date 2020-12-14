@@ -303,7 +303,7 @@ public abstract class Cube {
 		chunkZ = (int) Math.floor(coords.getZ()/16.0);
 		
 		
-		ArrayList<ArrayList<ArrayList<Short>>> currentChunk = gen.getChunk(chunkX, chunkZ, dim);
+		ArrayList<ArrayList<ArrayList<Short>>> currentChunk = gen.getChunk(chunkX, chunkZ);
 		ArrayList<ArrayList<ArrayList<Short>>> adjacentChunk;
 		
 		
@@ -328,7 +328,7 @@ public abstract class Cube {
 				}
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX-1, chunkZ, dim);
+			adjacentChunk = gen.getChunk(chunkX-1, chunkZ);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(15).get(relZ).size() > coords.getY()) {
 					if (!transparentBlockIDs.contains(adjacentChunk.get(15).get(relZ).get(coords.getY()))) {
@@ -346,7 +346,7 @@ public abstract class Cube {
 				}
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX, chunkZ-1, dim);
+			adjacentChunk = gen.getChunk(chunkX, chunkZ-1);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(relX).get(15).size() > coords.getY()) {
 					if (!transparentBlockIDs.contains(adjacentChunk.get(relX).get(15).get(coords.getY()))) {
@@ -364,7 +364,7 @@ public abstract class Cube {
 				}
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX+1, chunkZ, dim);
+			adjacentChunk = gen.getChunk(chunkX+1, chunkZ);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(0).get(relZ).size() > coords.getY()) {
 					if (!transparentBlockIDs.contains(adjacentChunk.get(0).get(relZ).get(coords.getY()))) {
@@ -382,7 +382,7 @@ public abstract class Cube {
 				}
 			}
 		}else {
-			adjacentChunk = gen.getChunk(chunkX, chunkZ+1, dim);
+			adjacentChunk = gen.getChunk(chunkX, chunkZ+1);
 			if (adjacentChunk.size() != 0) {
 				if (adjacentChunk.get(relX).get(0).size() > coords.getY()) {
 					if (!transparentBlockIDs.contains(adjacentChunk.get(relX).get(0).get(coords.getY()))) {

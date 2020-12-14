@@ -38,7 +38,7 @@ public class Game extends GLCanvas{
 	public Game(String[] args) {
 		GameWindow gameWindow = new GameWindow(1200,800,"OpenGL Tests",this);
 		
-		Player player1 = new Player(0, 200, 0, 0, 0);
+		Player player1 = new Player(0, 100, 0, 0, 0);
 		this.addKeyListener(player1);
 		this.addMouseListener(player1);
 		

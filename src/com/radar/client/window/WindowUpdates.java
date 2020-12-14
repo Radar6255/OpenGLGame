@@ -49,9 +49,14 @@ public class WindowUpdates implements GLEventListener {
 	private GLU glu = new GLU();
 	
 	/**
-	 * The world generation, kept to close when the game ends
+	 * The world generation for dimension 1, kept to close when the game ends
 	 */
-	WorldGen gen;
+	WorldGen normGen;
+	
+	/**
+	 * The world generation for dimension 2, kept to close when the game ends
+	 */
+	WorldGen timeGen;
 	
 	/**
 	 * Holds the texture map which also needs to be closed
@@ -153,7 +158,17 @@ public class WindowUpdates implements GLEventListener {
 
 		
 		//Moving the world around the players coordinates
-		gl.glTranslatef(-player.getPos().getX(), -player.getPos().getY(), -player.getPos().getZ());
+		switch(player.currentDimesnion) {
+		case NORMAL:
+			gl.glTranslatef(-player.getPos().getX(), -player.getPos().getY(), -player.getPos().getZ());
+			break;
+		case TIME:
+			gl.glTranslatef(-player.getPos().getX() * WorldGen.timeWorldUpscale, -player.getPos().getY(), -player.getPos().getZ() * WorldGen.timeWorldUpscale);
+			break;
+		default:
+			gl.glTranslatef(-player.getPos().getX(), -player.getPos().getY(), -player.getPos().getZ());
+			break;
+		}
 		
 		//Drawing all of the visible chunks
 		gl.glEnable(GL2.GL_TEXTURE_2D);
@@ -222,20 +237,29 @@ public class WindowUpdates implements GLEventListener {
 		if (!adding && !chunkQueue.isEmpty()) {
 			clearing = true;
 			Chunk temp = chunkQueue.pop();
-			Chunk timeTemp = timeChunkQueue.pop();
 			chunks.put(new Coord2D<Integer>(temp.getX(), temp.getZ()), temp);
-			timeChunks.put(new Coord2D<Integer>(timeTemp.getX(), timeTemp.getZ()), timeTemp);
 			chunksToSort.add(temp);
+			clearing = false;
+		}
+		
+		if (!adding && !timeChunkQueue.isEmpty()) {
+			clearing = true;
+			Chunk timeTemp = timeChunkQueue.pop();
+			timeChunks.put(new Coord2D<Integer>(timeTemp.getX(), timeTemp.getZ()), timeTemp);
 			timeChunksToSort.add(timeTemp);
 			clearing = false;
 		}
 		
 		for (Chunk chunk: chunks.values()) {
 			if (chunk.distance(player.getPos().getX(), player.getPos().getZ()) > VideoSettings.renderDistance) {
-				gen.removeChunk(chunk.getX(), chunk.getZ());
+				normGen.removeChunk(chunk.getX(), chunk.getZ());
 				chunk.delete(gl);
+				
+				//TODO Move this so it is seperate from normal dimension
+				timeGen.removeChunk(chunk.getX(), chunk.getZ());
 				Chunk timeChunk = timeChunks.get(new Coord2D<Integer>(chunk.getX(), chunk.getZ()));
 				timeChunk.delete(gl);
+				
 				chunks.remove(new Coord2D<Integer>(chunk.getX(),chunk.getZ()));
 				timeChunks.remove(new Coord2D<Integer>(chunk.getX(),chunk.getZ()));
 				chunksToSort.remove(chunk);
@@ -258,7 +282,8 @@ public class WindowUpdates implements GLEventListener {
 
 	@Override
 	public void dispose(GLAutoDrawable drawable) {
-		gen.stop();
+		normGen.stop();
+		timeGen.stop();
 		GL2 gl = drawable.getGL().getGL2();
 		
 		for (Chunk chunk: chunks.values()) {
@@ -281,7 +306,9 @@ public class WindowUpdates implements GLEventListener {
 	public void init(GLAutoDrawable drawable) {
 		GL2 gl = drawable.getGL().getGL2();
 		textures = new TextureMap(gl);
-		gen = new WorldGen(player, seed, this);
+		
+		normGen = new WorldGen(player, seed, this, Dimension.NORMAL);
+		timeGen = new WorldGen(player, seed, this, Dimension.TIME);
 		
 		gl.glShadeModel(GL2.GL_SMOOTH);
 		gl.glClearColor(0f, 0f, 0f, 0f);
@@ -335,12 +362,17 @@ public class WindowUpdates implements GLEventListener {
 	 * Adds a chunk to be rendered to this window
 	 * @param chunk The chunk to add to the render
 	 */
-	public void addChunk(Chunk chunk, Chunk timeChunk) {
+	public void addChunk(Chunk chunk, Dimension dim) {
 		while (clearing) {}
 		if (!clearing) {
 			adding = true;
-			chunkQueue.add(chunk);
-			timeChunkQueue.add(timeChunk);
+			switch(dim) {
+			case NORMAL:
+				chunkQueue.add(chunk);
+				break;
+			case TIME:
+				timeChunkQueue.add(chunk);
+			}
 			adding = false;
 		}
 	}
