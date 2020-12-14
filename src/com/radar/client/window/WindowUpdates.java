@@ -255,16 +255,21 @@ public class WindowUpdates implements GLEventListener {
 				normGen.removeChunk(chunk.getX(), chunk.getZ());
 				chunk.delete(gl);
 				
-				//TODO Move this so it is seperate from normal dimension
-				timeGen.removeChunk(chunk.getX(), chunk.getZ());
-				Chunk timeChunk = timeChunks.get(new Coord2D<Integer>(chunk.getX(), chunk.getZ()));
+				chunks.remove(new Coord2D<Integer>(chunk.getX(),chunk.getZ()));
+				chunksToSort.remove(chunk);
+				chunk = null;
+				break;
+			}
+		}
+		
+		for (Chunk timeChunk: timeChunks.values()) {
+			if (timeChunk.distance(player.getPos().getX()*WorldGen.timeWorldUpscale, player.getPos().getZ()*WorldGen.timeWorldUpscale) > VideoSettings.renderDistance) {
+				timeGen.removeChunk(timeChunk.getX(), timeChunk.getZ());
 				timeChunk.delete(gl);
 				
-				chunks.remove(new Coord2D<Integer>(chunk.getX(),chunk.getZ()));
-				timeChunks.remove(new Coord2D<Integer>(chunk.getX(),chunk.getZ()));
-				chunksToSort.remove(chunk);
 				timeChunksToSort.remove(timeChunk);
-				chunk = null;
+				timeChunks.remove(new Coord2D<Integer>(timeChunk.getX(),timeChunk.getZ()));
+				timeChunk = null;
 				break;
 			}
 		}
