@@ -80,7 +80,9 @@ public class Player implements KeyListener, MouseListener, Protocol{
 	/**
 	 * Booleans to keep track of what buttons are currently pressed
 	 */
-	boolean w, a, s, d, space, shift, breakB, place, c;
+	boolean w, a, s, d, space, shift, breakB, place, c, f;
+	
+	boolean fly = false;
 	
 	/**
 	 * Boolean to control whether the game is paused or not,
@@ -159,6 +161,16 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			}
 		}
 		
+		if(f) {
+			if(fly) {
+				fly = false;
+			}else {
+				fly = true;
+				velocity.setY(0f);
+			}
+			f = false;
+		}
+		
 		float xChange = 0; float yChange = 0; float zChange = 0;
 		
 		//Finding the sine and cosine for the horizontal rotation
@@ -166,8 +178,13 @@ public class Player implements KeyListener, MouseListener, Protocol{
 		float cos = (float) Math.cos(Math.toRadians(xRot));
 		
 		acceleration.setX(0f);
-//		acceleration.setY(-0.01f);
-		acceleration.setY(0f);
+		
+		if(fly) {
+			acceleration.setY(0f);
+		}else {
+			acceleration.setY(-0.01f);
+		}
+		
 		acceleration.setZ(0f);
 		
 		if (c) {
@@ -209,13 +226,15 @@ public class Player implements KeyListener, MouseListener, Protocol{
 		}
 		
 		//Up down movement
-		if(space && jump) {
+		if(space && jump && !fly) {
 			pos.setY(movementSpeed + pos.getY());
 			acceleration.setY(0.14f);
 			space = false;
 			jump = false;
 		}else if (shift) {
 			pos.setY(-movementSpeed + pos.getY());
+		}else if (fly && space) {
+			pos.setY(movementSpeed * 2 + pos.getY());
 		}
 		
 		velocity.setX(velocity.getX() + 0.34f*acceleration.getX());
@@ -803,6 +822,9 @@ public class Player implements KeyListener, MouseListener, Protocol{
 		case KeyEvent.VK_C:
 			c = true;
 			break;
+		case KeyEvent.VK_F:
+			f = true;
+			break;
 		case KeyEvent.VK_1:
 			currentlyPlacing = 1;
 			break;
@@ -841,6 +863,9 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			break;
 		case KeyEvent.VK_C:
 			c = false;
+			break;
+		case KeyEvent.VK_F:
+			f = false;
 			break;
 		case KeyEvent.VK_SPACE:
 			space = false;
