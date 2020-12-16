@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 
 import com.radar.client.world.Coord;
-import com.radar.client.world.Dimension;
 import com.radar.client.world.TextureMap;
 import com.radar.client.world.WorldGen;
 
@@ -72,19 +71,16 @@ public abstract class Cube {
 	 */
 	protected WorldGen gen;
 	
-	protected Dimension dim;
-	
 	/**
 	 * Constructor to create a cube
 	 * @param x X Position of the cube
 	 * @param y Y Position of the cube
 	 * @param z Z Position of the cube
 	 */
-	public Cube(int x, int y, int z, short[] faceTextures, WorldGen gen, Dimension dim) {
+	public Cube(int x, int y, int z, short[] faceTextures, WorldGen gen) {
 		coords = new Coord<Integer>(x,y,z);
 		this.faceTextures = faceTextures;
 		this.gen = gen;
-		this.dim = dim;
 		
 		adjacentFaceCull();
 		
@@ -105,11 +101,10 @@ public abstract class Cube {
 	 * @param y Y Position of the cube
 	 * @param z Z Position of the cube
 	 */
-	public Cube(int x, int y, int z, short[] faceTextures, WorldGen gen, Dimension dim, boolean doFaceCull) {
+	public Cube(int x, int y, int z, short[] faceTextures, WorldGen gen, boolean doFaceCull) {
 		coords = new Coord<Integer>(x,y,z);
 		this.faceTextures = faceTextures;
 		this.gen = gen;
-		this.dim = dim;
 		
 		if(doFaceCull) {
 			adjacentFaceCull();

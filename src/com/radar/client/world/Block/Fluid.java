@@ -7,7 +7,6 @@ import com.jogamp.opengl.GL2;
 import com.radar.client.window.WindowUpdates;
 import com.radar.client.world.Coord;
 import com.radar.client.world.Coord2D;
-import com.radar.client.world.Dimension;
 import com.radar.client.world.WorldGen;
 import com.radar.common.PointConversion;
 
@@ -45,15 +44,15 @@ public class Fluid extends Cube implements Updateable{
 	 * @param height The height of the fluid at this point
 	 * @param gen The world generation, used to get chunk data for liquid spread
 	 */
-	public Fluid(int x, int y, int z, short[] faceTextures, float height, WorldGen gen, Dimension dim) {
-		super(x, y, z, faceTextures, gen, dim, false);
+	public Fluid(int x, int y, int z, short[] faceTextures, float height, WorldGen gen) {
+		super(x, y, z, faceTextures, gen, false);
 		setHeight(height);
 		adjacentFaceCull();
 		super.setVerticies(verts);
 		
 	}
-	public Fluid(int x, int y, int z, short[] faceTextures, WorldGen gen, Dimension dim) {
-		super(x, y, z, faceTextures, gen, dim, false);
+	public Fluid(int x, int y, int z, short[] faceTextures, WorldGen gen) {
+		super(x, y, z, faceTextures, gen, false);
 		adjacentFaceCull();
 		super.setVerticies(verts);
 	}

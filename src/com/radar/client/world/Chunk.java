@@ -100,7 +100,7 @@ public class Chunk implements Comparable<Chunk>{
 	 * @param x The x chunk position of this chunk
 	 * @param z The z chunk position of this chunk
 	 */
-	public Chunk(int x, int z, WorldGen gen, WindowUpdates window, Dimension dim) {
+	public Chunk(int x, int z, WorldGen gen, WindowUpdates window) {
 		this.x = x;
 		this.z = z;
 		this.window = window;
@@ -112,7 +112,7 @@ public class Chunk implements Comparable<Chunk>{
 		cubesToModify = new LinkedList<>();
 		fluids = new HashMap<>();
 
-		load(gen, dim);
+		load(gen);
 	}
 	
 	/**
@@ -153,7 +153,7 @@ public class Chunk implements Comparable<Chunk>{
 	 * Called by the worldGen thread, used to do any intense processes,
 	 * before first render call
 	 */
-	public void load(WorldGen gen, Dimension dim) {
+	public void load(WorldGen gen) {
 		//TODO Find a more precise way of finding number of blocks in a chunk or get a better guess
 		cubes = new HashMap<>(100);
 		
@@ -165,14 +165,14 @@ public class Chunk implements Comparable<Chunk>{
 					if (chunk.get(tx).get(tz).get(ty) != 0) {
 						Coord<Integer> currentPos = new Coord<Integer>(x*16 + tx, ty, z*16 + tz);
 						if (chunk.get(tx).get(tz).get(ty) != 6) {
-							addCube(currentPos, new Block(x*16 + tx, ty, z*16 + tz, faceTextures[chunk.get(tx).get(tz).get(ty)-1], gen, dim));
+							addCube(currentPos, new Block(x*16 + tx, ty, z*16 + tz, faceTextures[chunk.get(tx).get(tz).get(ty)-1], gen));
 						}else {
 							Fluid temp;
 							
 							try {
-								temp = new Fluid(x*16 + tx, ty, z*16 + tz, faceTextures[chunk.get(tx).get(tz).get(ty)-1], gen.liquids.get(new Coord<Integer>(x*16 + tx, ty, z*16 + tz)), gen, dim);
+								temp = new Fluid(x*16 + tx, ty, z*16 + tz, faceTextures[chunk.get(tx).get(tz).get(ty)-1], gen.liquids.get(new Coord<Integer>(x*16 + tx, ty, z*16 + tz)), gen);
 							}catch(Exception e){
-								temp = new Fluid(x*16 + tx, ty, z*16 + tz, faceTextures[chunk.get(tx).get(tz).get(ty)-1], 1, gen, dim);
+								temp = new Fluid(x*16 + tx, ty, z*16 + tz, faceTextures[chunk.get(tx).get(tz).get(ty)-1], 1, gen);
 							}
 							fluids.put(currentPos, temp);
 							addCube(currentPos, temp);
@@ -194,7 +194,6 @@ public class Chunk implements Comparable<Chunk>{
 	 * @param gen The world generation used to find what changed
 	 */
 	public void load(int x, int y, int z, WorldGen gen) {
-		Dimension dim = Dimension.NORMAL;
 		ArrayList<ArrayList<ArrayList<Short>>> chunk = gen.getChunk(this.x, this.z);
 		Coord2D<Integer> rel = PointConversion.absoluteToRelative(new Coord2D<Integer>(x, z));
 		
@@ -215,15 +214,15 @@ public class Chunk implements Comparable<Chunk>{
 			cubes.remove(new Coord<Integer>(x+16*this.x,y,z+16*this.z));
 		}else {
 			if (mostRecentLoad != 6) {
-				Block block = new Block(x+16*this.x,y,z+16*this.z, faceTextures[chunk.get(x).get(z).get(y)-1], gen, dim);
+				Block block = new Block(x+16*this.x,y,z+16*this.z, faceTextures[chunk.get(x).get(z).get(y)-1], gen);
 				cubes.put(new Coord<Integer>(x+16*this.x,y,z+16*this.z), block);
 				block.facesNotVisible();
 			}else {
 				Fluid temp;
 				if (gen.liquids.containsKey(new Coord<Integer>(x+16*this.x,y,z+16*this.z))) {
-					temp = new Fluid(x+16*this.x,y,z+16*this.z, faceTextures[chunk.get(x).get(z).get(y)-1], gen.liquids.get(new Coord<Integer>(x+16*this.x,y,z+16*this.z)), gen, dim);
+					temp = new Fluid(x+16*this.x,y,z+16*this.z, faceTextures[chunk.get(x).get(z).get(y)-1], gen.liquids.get(new Coord<Integer>(x+16*this.x,y,z+16*this.z)), gen);
 				}else {
-					temp = new Fluid(x+16*this.x,y,z+16*this.z, faceTextures[chunk.get(x).get(z).get(y)-1], 1, gen, dim);
+					temp = new Fluid(x+16*this.x,y,z+16*this.z, faceTextures[chunk.get(x).get(z).get(y)-1], 1, gen);
 					gen.liquids.put(new Coord<Integer>(x+16*this.x,y,z+16*this.z), 1f);
 				}
 				temp.setPriority(BlockUpdateHandler.priority);

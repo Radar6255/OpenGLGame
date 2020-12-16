@@ -13,6 +13,7 @@ import java.util.Random;
 public class WorldUpdater {
 	
 	public static ArrayList<Player> players;
+	public static ServerSocket server;
 	
 	/**
 	 * Starts a server for players to join on the port specified in the args
@@ -33,7 +34,7 @@ public class WorldUpdater {
 		System.out.println("Starting server on port "+port);
 		
 		try {
-			ServerSocket server = new ServerSocket(port);
+			server = new ServerSocket(port);
 			
 			for (int i = 0; i < Integer.parseInt(args[1]); i++) {
 				Socket player = server.accept();
