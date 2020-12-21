@@ -11,7 +11,7 @@ import java.util.Scanner;
 import com.radar.client.world.Coord;
 import com.radar.client.world.Coord2D;
 import com.radar.client.world.Dimension;
-import com.radar.client.world.WorldGen;
+import com.radar.client.world.generation.WorldGen;
 
 /**
  * @author radar

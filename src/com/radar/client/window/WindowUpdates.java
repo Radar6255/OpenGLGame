@@ -14,9 +14,9 @@ import com.radar.client.world.Chunk;
 import com.radar.client.world.Coord2D;
 import com.radar.client.world.Dimension;
 import com.radar.client.world.TextureMap;
-import com.radar.client.world.WorldGen;
 import com.radar.client.world.Block.Cube;
 import com.radar.client.world.Block.Updateable;
+import com.radar.client.world.generation.WorldGen;
 
 /**
  * @author radar

@@ -7,7 +7,7 @@ import java.util.LinkedList;
 
 import com.radar.client.world.Coord;
 import com.radar.client.world.TextureMap;
-import com.radar.client.world.WorldGen;
+import com.radar.client.world.generation.WorldGen;
 
 /**
  * @author radar

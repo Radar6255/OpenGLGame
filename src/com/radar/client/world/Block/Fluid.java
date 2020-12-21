@@ -7,7 +7,7 @@ import com.jogamp.opengl.GL2;
 import com.radar.client.window.WindowUpdates;
 import com.radar.client.world.Coord;
 import com.radar.client.world.Coord2D;
-import com.radar.client.world.WorldGen;
+import com.radar.client.world.generation.WorldGen;
 import com.radar.common.PointConversion;
 
 public class Fluid extends Cube implements Updateable{

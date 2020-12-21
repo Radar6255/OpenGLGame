@@ -1,4 +1,4 @@
-package com.radar.client.world;
+package com.radar.client.world.generation;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -8,6 +8,10 @@ import java.util.Random;
 import com.radar.client.Game;
 import com.radar.client.Player;
 import com.radar.client.window.WindowUpdates;
+import com.radar.client.world.Chunk;
+import com.radar.client.world.Coord;
+import com.radar.client.world.Coord2D;
+import com.radar.client.world.Dimension;
 import com.radar.common.WorldIO;
 
 /**
@@ -58,6 +62,11 @@ public class WorldGen implements Runnable {
 	 * The thread that get started in the constructor and ended in the stop() method
 	 */
 	private Thread thread;
+	
+	/**
+	 * Used to find if a tree needs to generate at a location
+	 */
+	private TreeGen treeGen;
 	
 	/**
 	 * Used to keep track of which chunks are visible so that when one isn't
@@ -119,7 +128,8 @@ public class WorldGen implements Runnable {
 			}
 		}
 		this.seed = seed;
-		genGradient(1000, seed);
+		gradient = genGradient(1000, seed);
+		treeGen = new TreeGen(seed);
 		
 		thread = new Thread(this);
 		thread.start();
@@ -305,11 +315,11 @@ public class WorldGen implements Runnable {
 //									for (int i = 0; i < (int) Math.sqrt(3000-Math.pow(cubeXPos,2)-Math.pow(cubeZPos,2)); i++) {
 //									for (int i = 0; i < (int) 30+(15*(Math.cos(0.1*cubeXPos)))+(15*(Math.sin(0.1*cubeZPos))); i++) {
 									if(dim == Dimension.NORMAL) {
-										for (int i = 0; i < (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f)+32)-5; i++) {
+										for (int i = 0; i < (int) (80*perlin((float) cubeXPos*0.03f, (float)cubeZPos*0.03f, gradient)+32)-5; i++) {
 											worldDim.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 2);
 										}
 									}else {
-										for (int i = 0; i < (int) (80*perlin((float) cubeXPos*0.03f/timeWorldUpscale, (float)cubeZPos*0.03f/timeWorldUpscale)+32)-5; i++) {
+										for (int i = 0; i < (int) (80*perlin((float) cubeXPos*0.03f/timeWorldUpscale, (float)cubeZPos*0.03f/timeWorldUpscale, gradient)+32)-5; i++) {
 											worldDim.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 2);
 										}
 									}
@@ -326,6 +336,10 @@ public class WorldGen implements Runnable {
 //									}
 									
 									worldDim.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 1);
+									
+									if(treeGen.isTree(cubeXPos, cubeZPos)) {
+										worldDim.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 5);
+									}
 									if(cubeX + cubeZ == 0 || cubeX + cubeZ == 1) {
 										worldDim.get(new Coord2D<Integer>(currentX + playerChunkX, currentZ + playerChunkZ)).get(cubeX).get(cubeZ).add((short) 4);
 									}
@@ -350,14 +364,13 @@ public class WorldGen implements Runnable {
 	 * Uses the current seed value if there is one
 	 * @param size The size of the random matrix
 	 */
-	private void genGradient(int size, int seed) {
+	static float[][][] genGradient(int size, int seed) {
 		Random rand;
+		float[][][] gradient;
 		if (seed != -1) {
 			rand = new Random(seed);
 		}else {
 			seed = new Random().nextInt();
-			window.addSeed(seed);
-			this.seed = seed;
 			rand = new Random(seed);
 		}
 		gradient = new float[size][size][2];
@@ -367,6 +380,7 @@ public class WorldGen implements Runnable {
 				gradient[x][y][1] = rand.nextFloat();
 			}
 		}
+		return gradient;
 	}
 	
 	/**
@@ -377,7 +391,7 @@ public class WorldGen implements Runnable {
 	 * @param y The y position of the point to dot product against
 	 * @return The gradient of the desired point relative to the grid x,y
 	 */
-	private float dotGridGradient (int gridX, int gridY, float x, float y) {
+	private static float dotGridGradient (int gridX, int gridY, float x, float y, float[][][] gradient) {
 		float dx = x - gridX;
 		float dy = y - gridY;
 		
@@ -391,7 +405,7 @@ public class WorldGen implements Runnable {
 	 * @param weight The point where they converge?
 	 * @return The new desired value
 	 */
-	private float linearInterpolation(float firstValue, float secondValue, float weight) {
+	private static float linearInterpolation(float firstValue, float secondValue, float weight) {
 		return (1.0f - weight)*firstValue + weight*secondValue;
 	}
 	
@@ -401,7 +415,7 @@ public class WorldGen implements Runnable {
 	 * @param y The y value of the point
 	 * @return The height from -1 - 1 of terrain
 	 */
-	private float perlin (float x, float y) {
+	static float perlin (float x, float y, float[][][] gradient) {
 		int xFloor = (int) Math.floor(x);
 		int xCeiling = xFloor + 1;
 		int yFloor = (int) Math.floor(y);
@@ -413,18 +427,15 @@ public class WorldGen implements Runnable {
 		
 		float currentGrad, nextGrad, xGrad, yGrad, result;
 		
-		currentGrad = dotGridGradient(xFloor, yFloor, x, y);
-		nextGrad = dotGridGradient(xCeiling, yFloor, x, y);
+		currentGrad = dotGridGradient(xFloor, yFloor, x, y, gradient);
+		nextGrad = dotGridGradient(xCeiling, yFloor, x, y, gradient);
 		xGrad = linearInterpolation(currentGrad, nextGrad, xPos);
 		
-		currentGrad = dotGridGradient(xFloor, yCeiling, x, y);
-		nextGrad = dotGridGradient(xCeiling, yCeiling, x, y);
+		currentGrad = dotGridGradient(xFloor, yCeiling, x, y, gradient);
+		nextGrad = dotGridGradient(xCeiling, yCeiling, x, y, gradient);
 		yGrad = linearInterpolation(currentGrad, nextGrad, xPos);
 		
 		result = linearInterpolation(xGrad, yGrad, yPos);
-		if (result > 1) {
-			System.out.println(result);
-		}
 		return result;
 	}
 }

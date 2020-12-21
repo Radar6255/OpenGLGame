@@ -16,6 +16,7 @@ import com.radar.client.world.Block.Cube;
 import com.radar.client.world.Block.FaceUpdateData;
 import com.radar.client.world.Block.Fluid;
 import com.radar.client.world.Block.Updateable;
+import com.radar.client.world.generation.WorldGen;
 import com.radar.common.PointConversion;
 
 /**

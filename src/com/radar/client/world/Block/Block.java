@@ -1,6 +1,6 @@
 package com.radar.client.world.Block;
 
-import com.radar.client.world.WorldGen;
+import com.radar.client.world.generation.WorldGen;
 
 public class Block extends Cube {
 	
