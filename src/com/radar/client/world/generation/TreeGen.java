@@ -23,7 +23,6 @@ public class TreeGen {
 	 * @return True if a tree should generate here, false otherwise
 	 */
 	public boolean isTree(int x, int y) {
-		
 		// Find height of position to check
 		float mid = (WorldGen.perlin((x-2000)*0.02f, (y-2000)*0.02f, firstGrad));
 		mid = mid - (WorldGen.perlin((x-2000)*0.1f, (y-2000)*0.1f, secondGrad));

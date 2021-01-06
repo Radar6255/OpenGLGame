@@ -5,7 +5,7 @@ import java.awt.Frame;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-import com.radar.client.Game;
+import com.jogamp.opengl.awt.GLCanvas;
 
 public class GameWindow {
 
@@ -16,21 +16,21 @@ public class GameWindow {
 	 * @param game The instance of this game
 	 */
 	Frame frame;
-	public GameWindow(int width, int height, String title, Game game) {
+	public GameWindow(int width, int height, String title, GLCanvas canvas) {
 		frame = new Frame(title);
 		Dimension size = new Dimension(width, height);
-		game.setPreferredSize(size);
+		canvas.setPreferredSize(size);
 //		frame.setMaximumSize(size);
 //		frame.setMinimumSize(size);
 		//TODO Change eventually
-		frame.add(game);
+		frame.add(canvas);
 		frame.pack();
 		frame.setVisible(true);
 		//Code to stop the program from running
 		frame.addWindowListener(new WindowAdapter(){  
             public void windowClosing(WindowEvent e) {
                 frame.dispose();
-                game.stop();
+                canvas.destroy();
             	System.out.println("Window closed");
             }
         });

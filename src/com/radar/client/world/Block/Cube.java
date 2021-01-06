@@ -7,7 +7,7 @@ import java.util.LinkedList;
 
 import com.radar.client.world.Coord;
 import com.radar.client.world.TextureMap;
-import com.radar.client.world.generation.WorldGen;
+import com.radar.client.world.generation.Generation;
 
 /**
  * @author radar
@@ -69,7 +69,7 @@ public abstract class Cube {
 	/**
 	 * Used to get the chunks when doing face culling
 	 */
-	protected WorldGen gen;
+	protected Generation gen;
 	
 	/**
 	 * Constructor to create a cube
@@ -77,7 +77,7 @@ public abstract class Cube {
 	 * @param y Y Position of the cube
 	 * @param z Z Position of the cube
 	 */
-	public Cube(int x, int y, int z, short[] faceTextures, WorldGen gen) {
+	public Cube(int x, int y, int z, short[] faceTextures, Generation gen) {
 		coords = new Coord<Integer>(x,y,z);
 		this.faceTextures = faceTextures;
 		this.gen = gen;
@@ -101,7 +101,7 @@ public abstract class Cube {
 	 * @param y Y Position of the cube
 	 * @param z Z Position of the cube
 	 */
-	public Cube(int x, int y, int z, short[] faceTextures, WorldGen gen, boolean doFaceCull) {
+	public Cube(int x, int y, int z, short[] faceTextures, Generation gen, boolean doFaceCull) {
 		coords = new Coord<Integer>(x,y,z);
 		this.faceTextures = faceTextures;
 		this.gen = gen;

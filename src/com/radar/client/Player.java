@@ -22,6 +22,7 @@ import com.radar.client.window.WindowUpdates;
 import com.radar.client.world.Coord;
 import com.radar.client.world.Coord2D;
 import com.radar.client.world.Dimension;
+import com.radar.client.world.generation.Generation;
 import com.radar.client.world.generation.WorldGen;
 import com.radar.common.Protocol;
 
@@ -93,7 +94,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 	/**
 	 * The current world generation, used to grab chunks to check and modify
 	 */
-	private HashMap<Dimension, WorldGen> worldGen;
+	private HashMap<Dimension, Generation> worldGen;
 	
 	/**
 	 * The players movement speed amount
@@ -114,7 +115,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 		pos = new Coord<Float>(x,y,z);
 		velocity = new Coord<Float>(0f,0f,0f);
 		acceleration = new Coord<Float>(0f,-0.01f,0f);
-		worldGen = new HashMap<Dimension, WorldGen>();
+		worldGen = new HashMap<Dimension, Generation>();
 		
 		this.xRot = xRot;
 		this.yRot = yRot;
@@ -126,7 +127,8 @@ public class Player implements KeyListener, MouseListener, Protocol{
 	}
 	
 	/**
-	 * Function to run things that should be ticked for the player
+	 * Function to run things that should be ticked for the player,
+	 * includes breaking blocks unless a window is not specified
 	 */
 	public void tick(WindowUpdates window) {
 		forward = false;
@@ -275,13 +277,15 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			velocity.setZ(velocity.getZ()-0.5f*velocity.getZ());
 		}
 		
-		collision(xChange, yChange, zChange, window);
-		
-		if (breakB) {
-			breakBlock(window);
-		}
-		if (place) {
-			placeBlock(window);
+		if(window != null) {
+			collision(xChange, yChange, zChange, window);
+			
+			if (breakB) {
+				breakBlock(window);
+			}
+			if (place) {
+				placeBlock(window);
+			}
 		}
 	}
 	
@@ -443,8 +447,12 @@ public class Player implements KeyListener, MouseListener, Protocol{
 	 * Function to give this player a world to base collisions and block placement on
 	 * @param worldGen The world generation to give this player
 	 */
-	public void addGen(Dimension dim, WorldGen worldGen) {
+	public void addGen(Dimension dim, Generation worldGen) {
 		this.worldGen.put(dim, worldGen);
+	}
+	
+	public void setFly(boolean fly) {
+		this.fly = fly;
 	}
 	
 	/**
@@ -703,7 +711,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			
 			Coord<Integer> collisionPoint = pointCollision(cx, cy, cz, current);
 			if (collisionPoint != null) {
-				if (current.get(collisionPoint.getX()).get(collisionPoint.getZ()).size() > collisionPoint.getY() && collisionPoint.getY() > 0 && current.get(collisionPoint.getX()).get(collisionPoint.getZ()).get(collisionPoint.getY()) != 0){
+				if (current.get(collisionPoint.getX()).get(collisionPoint.getZ()).size() >= collisionPoint.getY() && collisionPoint.getY() >= 0 && current.get(collisionPoint.getX()).get(collisionPoint.getZ()).get(collisionPoint.getY()) != 0){
 
 					i -= 0.004f * 1;
 					cx = pos.getX() + i*xVec;
@@ -738,6 +746,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 						current.get(collisionPoint.getX()).get(collisionPoint.getZ()).add((short) 0);
 					}
 					current.get(collisionPoint.getX()).get(collisionPoint.getZ()).set((int) collisionPoint.getY(), currentlyPlacing);
+					System.out.println("Placed block");
 					
 					if (Game.MULTIPLAYER) {
 						out.println(BLOCK_UPDATE+" "+(int) cx+" "+(int) cy+" "+(int) cz+" 1");

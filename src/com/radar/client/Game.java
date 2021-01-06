@@ -36,7 +36,7 @@ public class Game extends GLCanvas{
 	 * Used to set up the games pieces
 	 */
 	public Game(String[] args) {
-		GameWindow gameWindow = new GameWindow(1200,800,"OpenGL Tests",this);
+		GameWindow gameWindow = new GameWindow(1200,800,"OpenGL Game",this);
 		
 		Player player1 = new Player(0, 100, 0, 0, 0);
 		this.addKeyListener(player1);
@@ -69,7 +69,8 @@ public class Game extends GLCanvas{
 	/**
 	 * Function to stop the program
 	 */
-	public void stop() {
+	@Override
+	public void destroy() {
 		animator.stop();
 		System.out.println("Stopped animator");
 	}
