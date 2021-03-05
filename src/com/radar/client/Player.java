@@ -46,7 +46,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 	 */
 	private short currentlyPlacing = 1;
 	
-	public Dimension currentDimesnion;
+	public Dimension currentDimension;
 	
 	/**
 	 * Velocity of the player
@@ -123,7 +123,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 		w = false; a = false; s = false; d = false; space = false; shift = false; breakB = false; place = false;
 		jump = false;
 		
-		this.currentDimesnion = Dimension.NORMAL;
+		this.currentDimension = Dimension.NORMAL;
 	}
 	
 	/**
@@ -190,10 +190,10 @@ public class Player implements KeyListener, MouseListener, Protocol{
 		acceleration.setZ(0f);
 		
 		if (c) {
-			if (this.currentDimesnion == Dimension.NORMAL) {
-				this.currentDimesnion = Dimension.TIME;
+			if (this.currentDimension == Dimension.NORMAL) {
+				this.currentDimension = Dimension.TIME;
 			}else {
-				this.currentDimesnion = Dimension.NORMAL;
+				this.currentDimension = Dimension.NORMAL;
 			}
 			c = false;
 		}
@@ -313,7 +313,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			int chunkX = (int) Math.floor(cx/16.0);
 			int chunkZ = (int) Math.floor(cz/16.0);
 			
-			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.get(currentDimesnion).getChunk(chunkX, chunkZ);
+			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.get(currentDimension).getChunk(chunkX, chunkZ);
 //			Coord<Integer> collision = pointCollision(cx, cy, cz, current);
 			if (current != null) {
 				int relX = (int) cx % 16;
@@ -408,7 +408,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 //			}catch(Exception e) {
 //				System.out.println("Error updating block "+x+" "+y+" "+z);
 //			}
-			worldGen.get(currentDimesnion).placeBlock(x, y, z, chunkX, chunkZ, blockID);
+			worldGen.get(currentDimension).placeBlock(x, y, z, chunkX, chunkZ, blockID);
 			
 			break;
 		}
@@ -464,7 +464,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 	 */
 	private void collision(float xChange, float yChange, float zChange, WindowUpdates window) {
 		Coord<Float> pos;
-		if (this.currentDimesnion == Dimension.TIME) {
+		if (this.currentDimension == Dimension.TIME) {
 			pos = new Coord<Float>(this.pos.getX() * WorldGen.timeWorldUpscale, this.pos.getY(), this.pos.getZ() * WorldGen.timeWorldUpscale);
 		}else {
 			pos = this.pos;
@@ -488,9 +488,9 @@ public class Player implements KeyListener, MouseListener, Protocol{
 				
 	//			ArrayList<ArrayList<ArrayList<Integer>>> current = worldGen.getChunk(chunkX, chunkZ);
 				//TODO Causes random out of bounds errors even after checking that it would be in bounds
-				if ((worldGen.get(currentDimesnion).getBlock(pos.getX()+xOff, (float) Math.floor(roundFloat(pos.getY()-1-yChange)), pos.getZ()+zOff) != 0 && worldGen.get(currentDimesnion).getBlock(pos.getX()+xOff, (float) Math.floor(roundFloat(pos.getY()-1-yChange)), pos.getZ()+zOff) != -1)
-						|| (worldGen.get(currentDimesnion).getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-yChange), pos.getZ()+zOff) != 0 && worldGen.get(currentDimesnion).getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-yChange), pos.getZ()+zOff) != -1)
-						|| (worldGen.get(currentDimesnion).getBlock(pos.getX()+xOff, Math.round(pos.getY()-0.5-yChange), pos.getZ()+zOff) != 0 && worldGen.get(currentDimesnion).getBlock(pos.getX()+xOff, Math.round(pos.getY()-0.5-yChange), pos.getZ()+zOff) != -1)) {
+				if ((worldGen.get(currentDimension).getBlock(pos.getX()+xOff, (float) Math.floor(roundFloat(pos.getY()-1-yChange)), pos.getZ()+zOff) != 0 && worldGen.get(currentDimension).getBlock(pos.getX()+xOff, (float) Math.floor(roundFloat(pos.getY()-1-yChange)), pos.getZ()+zOff) != -1)
+						|| (worldGen.get(currentDimension).getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-yChange), pos.getZ()+zOff) != 0 && worldGen.get(currentDimension).getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-yChange), pos.getZ()+zOff) != -1)
+						|| (worldGen.get(currentDimension).getBlock(pos.getX()+xOff, Math.round(pos.getY()-0.5-yChange), pos.getZ()+zOff) != 0 && worldGen.get(currentDimension).getBlock(pos.getX()+xOff, Math.round(pos.getY()-0.5-yChange), pos.getZ()+zOff) != -1)) {
 					//Check if there is a collision
 					if ((pos.getX()-(1-playerSize) > Math.floor(pos.getX()+xOff)-1 && pos.getX()+(1-playerSize) < Math.floor(pos.getX()+xOff)+1) && (pos.getZ()-(1-playerSize) > Math.floor(pos.getZ()+zOff)-1 && pos.getZ()+(1-playerSize) < Math.floor(pos.getZ()+zOff)+1)) {
 						if (pos.getX()-(1-playerSize) > Math.floor(pos.getX()+xOff)-1 && roundFloat(pos.getX()-xChange-(1-playerSize)) <= (float) Math.floor(pos.getX()+xOff)-1) {
@@ -545,7 +545,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			
 //			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.getChunk(chunkX, chunkZ);
 			
-			if (worldGen.get(currentDimesnion).getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-2), pos.getZ()+zOff) != 0 && worldGen.get(currentDimesnion).getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-2), pos.getZ()+zOff) != -1) {
+			if (worldGen.get(currentDimension).getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-2), pos.getZ()+zOff) != 0 && worldGen.get(currentDimension).getBlock(pos.getX()+xOff, (float) Math.ceil(pos.getY()-2), pos.getZ()+zOff) != -1) {
 //			if (current.get(relX).get(relZ).size() > Math.ceil(pos.getY()-2) && Math.ceil(pos.getY()-2) >= 0 && current.get(relX).get(relZ).get((int) Math.ceil(pos.getY()-2)) != 0) {
 				//For debugging, shows where collision checks are made
 //				Coord2D<Integer> rel = PointConversion.absoluteToRelative(new Coord2D<Integer>((int) Math.floor(pos.getX()+xOff), (int) Math.floor(pos.getZ()+zOff)));
@@ -636,27 +636,31 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			int chunkZ = (int) Math.floor(cz/16.0);
 			
 			
-			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.get(currentDimesnion).getChunk(chunkX, chunkZ);
+			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.get(currentDimension).getChunk(chunkX, chunkZ);
 			Coord<Integer> collisionPoint = pointCollision(cx, cy, cz, current);
 			if (collisionPoint != null) {
 				if (current.get(collisionPoint.getX()).get(collisionPoint.getZ()).size() > collisionPoint.getY() && collisionPoint.getY() > 0 && current.get(collisionPoint.getX()).get(collisionPoint.getZ()).get(collisionPoint.getY()) != 0){
 //					if(current.get(index))
 					current.get(collisionPoint.getX()).get(collisionPoint.getZ()).set(collisionPoint.getY(), (short) 0);
 
+					worldGen.get(currentDimension).updatePosition(collisionPoint);
+					
 					cy = collisionPoint.getY();
 					if (Game.MULTIPLAYER) {
 						//TODO Fix, inaccurate due to changed cx, cy, cz
 						out.println(BLOCK_UPDATE+" "+(int) cx+" "+(int) cy+" "+(int) cz+" 0");
 					}
-					worldGen.get(currentDimesnion).editedChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
+					worldGen.get(currentDimension).editedChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
 					try {
 //						if(worldGen.liquids.containsKey(new Coord<Integer>(collisionPoint.getX()+16*chunkX,collisionPoint.getY(),collisionPoint.getZ()+16*chunkZ))) {
 //							System.out.println("Removed "+worldGen.liquids.get(new Coord<Integer>(collisionPoint.getX()+16*chunkX,collisionPoint.getY(),collisionPoint.getZ()+16*chunkZ)));
 //						}
-						worldGen.get(currentDimesnion).liquids.remove(new Coord<Integer>(collisionPoint.getX()+16*chunkX,collisionPoint.getY(),collisionPoint.getZ()+16*chunkZ));
-						window.getChunk(chunkX, chunkZ).load(collisionPoint.getX(), collisionPoint.getY(), collisionPoint.getZ(), worldGen.get(currentDimesnion));
+						Coord<Integer> placePos = new Coord<Integer>(collisionPoint.getX()+16*chunkX,collisionPoint.getY(),collisionPoint.getZ()+16*chunkZ);
+						worldGen.get(currentDimension).liquids.remove(placePos);
+						worldGen.get(currentDimension).updatePosition(placePos);
+						window.getChunk(chunkX, chunkZ).load(collisionPoint.getX(), collisionPoint.getY(), collisionPoint.getZ(), worldGen.get(currentDimension));
 						// World has been modified so it must save a file
-						worldGen.get(currentDimesnion).write = true;
+						worldGen.get(currentDimension).write = true;
 						
 						//Updating adjacent chunks if neccessary
 						if ((int) Math.floor(collisionPoint.getX()) == 15) {
@@ -707,7 +711,7 @@ public class Player implements KeyListener, MouseListener, Protocol{
 			int chunkX = (int) Math.floor(cx/16.0);
 			int chunkZ = (int) Math.floor(cz/16.0);
 			
-			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.get(currentDimesnion).getChunk(chunkX, chunkZ);
+			ArrayList<ArrayList<ArrayList<Short>>> current = worldGen.get(currentDimension).getChunk(chunkX, chunkZ);
 			
 			Coord<Integer> collisionPoint = pointCollision(cx, cy, cz, current);
 			if (collisionPoint != null) {
@@ -739,24 +743,25 @@ public class Player implements KeyListener, MouseListener, Protocol{
 						relZ = (int) cz % 16;
 					}
 					
-					current = worldGen.get(currentDimesnion).getChunk(chunkX, chunkZ);
+					current = worldGen.get(currentDimension).getChunk(chunkX, chunkZ);
 					collisionPoint = new Coord<Integer>(relX, (int) cy, relZ);
 					
 					while (current.get(collisionPoint.getX()).get(collisionPoint.getZ()).size() <= collisionPoint.getY()) {
 						current.get(collisionPoint.getX()).get(collisionPoint.getZ()).add((short) 0);
 					}
 					current.get(collisionPoint.getX()).get(collisionPoint.getZ()).set((int) collisionPoint.getY(), currentlyPlacing);
-					System.out.println("Placed block");
+					
+					worldGen.get(currentDimension).updatePosition(collisionPoint);
 					
 					if (Game.MULTIPLAYER) {
 						out.println(BLOCK_UPDATE+" "+(int) cx+" "+(int) cy+" "+(int) cz+" 1");
 					}
-					worldGen.get(currentDimesnion).editedChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
+					worldGen.get(currentDimension).editedChunks.add(new Coord2D<Integer>(chunkX, chunkZ));
 					try {
 						cy = collisionPoint.getY();
-						window.getChunk(chunkX, chunkZ).load(relX, (int) collisionPoint.getY(), relZ, worldGen.get(currentDimesnion));
+						window.getChunk(chunkX, chunkZ).load(relX, (int) collisionPoint.getY(), relZ, worldGen.get(currentDimension));
 						// World has been modified so it must save a file
-						worldGen.get(currentDimesnion).write = true;
+						worldGen.get(currentDimension).write = true;
 						
 						if(currentlyPlacing == 6)
 							window.getChunk(chunkX, chunkZ).updateCube(new Coord<Integer>(collisionPoint.getX(),collisionPoint.getY(),collisionPoint.getZ()));

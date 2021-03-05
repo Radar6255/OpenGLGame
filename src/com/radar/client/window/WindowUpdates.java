@@ -158,7 +158,7 @@ public class WindowUpdates implements GLEventListener {
 
 		
 		//Moving the world around the players coordinates
-		switch(player.currentDimesnion) {
+		switch(player.currentDimension) {
 		case NORMAL:
 			gl.glTranslatef(-player.getPos().getX(), -player.getPos().getY(), -player.getPos().getZ());
 			break;
@@ -187,7 +187,7 @@ public class WindowUpdates implements GLEventListener {
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, new float[] {0.0f, 0.0f, 0.0f, 0.0f}, 0);
 //        gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, 100.0f);
 
-		switch(player.currentDimesnion) {
+		switch(player.currentDimension) {
 		case TIME:
 			timeChunksToSort.sort(null);
 			for (Chunk timeChunk: timeChunksToSort) {

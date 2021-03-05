@@ -98,7 +98,7 @@ public class StructWindow extends WindowUpdates {
 
 		
 		//Moving the world around the players coordinates
-		switch(player.currentDimesnion) {
+		switch(player.currentDimension) {
 		case NORMAL:
 			gl.glTranslatef(-player.getPos().getX(), -player.getPos().getY(), -player.getPos().getZ());
 			break;
@@ -174,6 +174,8 @@ public class StructWindow extends WindowUpdates {
 	
 	@Override
 	public void dispose(GLAutoDrawable drawable) {
+		gen.stop();
+		
 		GL2 gl = drawable.getGL().getGL2();
 		
 		//TODO Delete the single chunk

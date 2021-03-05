@@ -57,4 +57,14 @@ public abstract class Generation {
 	}
 	
 	public abstract Chunk loadChunk(int chunkX, int chunkZ, Dimension dim);
+	
+	public ArrayList<ArrayList<ArrayList<Short>>> getChunk(Coord2D<Integer> pos) {
+		return getChunk(pos.getX(), pos.getZ());
+	}
+	
+	public void updatePosition(Coord<Integer> pos) {
+		
+	}
+	
+	public abstract void stop();
 }

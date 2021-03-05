@@ -69,6 +69,11 @@ public class Coord<E> {
 	public void setZ(E z) {
 		this.z = z;
 	}
+	
+	public Coord<E> clone(){
+		return new Coord<E>(getX(), getY(), getZ());
+	}
+	
 	@Override
 	public String toString() {
 		return "X: "+x + " Y: " + y + " Z: " + z;
